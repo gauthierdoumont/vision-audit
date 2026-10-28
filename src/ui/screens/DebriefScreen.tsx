@@ -54,7 +54,8 @@ export function DebriefScreen({ level, state, result, onReplay, onHome }: Props)
             <p className="warning">Anomalie non trouvée.</p>
           )}
           <h3>Écriture attendue</h3>
-          <table className="doc-table">
+          {r.anomaly.disclosureOnly && <p>Aucune écriture : l’information doit figurer dans l’annexe des comptes annuels.</p>}
+          {!r.anomaly.disclosureOnly && <table className="doc-table">
             <thead>
               <tr>
                 <th>Compte</th>
@@ -71,7 +72,7 @@ export function DebriefScreen({ level, state, result, onReplay, onHome }: Props)
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table>}
           <h3>Pourquoi</h3>
           {r.anomaly.explanation.map((p) => (
             <p key={p}>{p}</p>
@@ -86,6 +87,21 @@ export function DebriefScreen({ level, state, result, onReplay, onHome }: Props)
           <p className="muted">Normes : {r.anomaly.isa}</p>
         </article>
       ))}
+
+      {(level.decoys ?? []).length > 0 && (
+        <article className="card static">
+          <h2>Fausses pistes</h2>
+          {level.decoys!.map((decoy) => (
+            <div key={decoy.title}>
+              <h3>{decoy.title}</h3>
+              {decoy.explanation.map((p) => (
+                <p key={p}>{p}</p>
+              ))}
+              <p className="muted">Justification : {decoy.justification.map((c) => describeClue(level, c)?.text).join(' ; ')}</p>
+            </div>
+          ))}
+        </article>
+      )}
 
       {result.falsePositives.length > 0 && (
         <article className="card static">

@@ -60,7 +60,12 @@ export function sortEntries(entries: Entry[]): void {
   entries.sort((a, b) => (a.date === b.date ? 0 : a.date < b.date ? -1 : 1));
 }
 
-export function generateBooks(rng: Rng, company: Company, difficulty: number): LedgerResult {
+export type LedgerOptions = {
+  /** Une embauche réelle au 1er octobre (fausse piste « nouveau nom dans la paie »). */
+  lateHire?: boolean;
+};
+
+export function generateBooks(rng: Rng, company: Company, difficulty: number, options: LedgerOptions = {}): LedgerResult {
   const spec = SECTORS[company.sector];
   const deductible = !spec.vatExempt;
   const year = company.fiscalYear;
@@ -144,6 +149,7 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
   }
   // Une embauche de l'année commence à son mois d'entrée.
   for (const e of employees) if (e.startDate > yearEnd) e.startDate = isoDate(year, 1, 1);
+  if (options.lateHire && employees.length > 2) employees[employees.length - 1]!.startDate = isoDate(year, 10, 1);
   world.employees = employees;
 
   // ---------- Tiers ----------
@@ -499,13 +505,16 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
   // ---------- Inventaire et amortissements ----------
   const stockTarget = Math.round((openingStock * rng.int(88, 115)) / 100);
   world.stock = stockItems(rng, spec.suppliers, stockTarget, year);
-  const closingStock = world.stock.reduce((s, item) => s + item.quantity * item.unitCost, 0);
-  const stockChange = closingStock - openingStock;
-  addEntry({
+  const stockChange = stockValue(world.stock) - openingStock;
+  // L'écriture est toujours créée (même à zéro) pour pouvoir être recalculée par restateStock.
+  entries.push({
+    id: id('e'),
     journal: 'OD',
     date: yearEnd,
-    label: 'Variation des stocks de marchandises',
-    lines: stockChange >= 0 ? [line('340', stockChange, 0), line('609', 0, stockChange)] : [line('609', -stockChange, 0), line('340', 0, -stockChange)],
+    label: STOCK_LABEL,
+    lines: (stockChange >= 0 ? [line('340', stockChange, 0), line('609', 0, stockChange)] : [line('609', -stockChange, 0), line('340', 0, -stockChange)]).filter(
+      (l) => l.debit || l.credit,
+    ),
   });
   for (const asset of assets) {
     const amount = depreciationFor(asset, year);
@@ -522,6 +531,21 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
 
   sortEntries(entries);
   return { books: { entries, invoices, assets, parties, world }, company: { ...company, staff }, revenue };
+}
+
+export const STOCK_LABEL = 'Variation des stocks de marchandises';
+
+export function stockValue(items: StockItem[]): Cents {
+  return items.reduce((s, item) => s + item.quantity * item.unitCost, 0);
+}
+
+/** Recalcule l'écriture de variation des stocks à partir de la liste d'inventaire (après une anomalie de stock). */
+export function restateStock(books: Books): void {
+  const opening = books.entries.find((e) => e.label === 'Bilan d’ouverture')!.lines.filter((l) => l.account === '340').reduce((s, l) => s + l.debit, 0);
+  const change = stockValue(books.world.stock) - opening;
+  const entry = books.entries.find((e) => e.label === STOCK_LABEL);
+  const lines = change >= 0 ? [line('340', change, 0), line('609', 0, change)] : [line('609', -change, 0), line('340', 0, -change)];
+  if (entry) entry.lines = lines.filter((l) => l.debit || l.credit);
 }
 
 /** Articles en stock dont la valeur totale approche `target`. */
@@ -548,7 +572,6 @@ export function afterClosingEvents(truth: Books, company: Company, rng: Rng): vo
   const year = company.fiscalYear;
   const yearEnd = isoDate(year, 12, 31);
   const events = truth.world.afterClosing;
-  let n = events.length;
   for (const invoice of truth.invoices) {
     // Seules les factures encore ouvertes au 31/12 sont réglées après la clôture.
     if (truth.entries.some((e) => e.journal === 'FIN' && e.invoiceId === invoice.id)) continue;
@@ -569,13 +592,13 @@ export function afterClosingEvents(truth: Books, company: Company, rng: Rng): vo
   const onss = social.flatMap((e) => e.lines).filter((l) => l.account === '454').reduce((s, l) => s + l.credit, 0);
   const tax = social.flatMap((e) => e.lines).filter((l) => l.account === '453').reduce((s, l) => s + l.credit, 0);
   events.push(
-    { id: `ev${++n}`, date: isoDate(year + 1, 1, 15), label: 'ONSS de décembre', amount: -onss },
-    { id: `ev${++n}`, date: isoDate(year + 1, 1, 15), label: 'Précompte professionnel de décembre', amount: -tax },
+    { id: 'onss-12', date: isoDate(year + 1, 1, 15), label: 'ONSS de décembre (travailleurs et employeur)', amount: -onss },
+    { id: 'pp-12', date: isoDate(year + 1, 1, 15), label: 'Précompte professionnel de décembre', amount: -tax },
   );
   const q4 = (account: string) =>
     truth.entries.filter((e) => quarterOf(e.date) === 4 && e.date.startsWith(String(year))).flatMap((e) => e.lines).filter((l) => l.account === account).reduce((s, l) => s + l.debit - l.credit, 0);
   const vat = -q4('451') - q4('411');
-  if (vat !== 0) events.push({ id: `ev${++n}`, date: isoDate(year + 1, 1, 20), label: 'TVA — déclaration du 4e trimestre', amount: -vat });
+  if (vat !== 0) events.push({ id: 'tva-t4', date: isoDate(year + 1, 1, 20), label: 'TVA — déclaration du 4e trimestre', amount: -vat });
   events.sort((a, b) => a.date.localeCompare(b.date));
 }
 

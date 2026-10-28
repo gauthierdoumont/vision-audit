@@ -179,7 +179,7 @@ export const privateExpense: AnomalyDefinition = {
       correction: [d('416', total), c('611', base), c('411', vat)],
       traces: [REF.purchase(booked.purchase.id), REF.invoiceLine(invoice.id, 'delivery'), REF.invoiceLine(invoice.id, 0), REF.confession()],
       contradictedBy: [REF.invoiceLine(invoice.id, 'delivery')],
-      params: { shop: party.name, item: item.label, base: formatAmount(base), vat: formatAmount(vat), total: formatAmount(total), date: formatDate(date), month: MONTHS[monthOf(date) - 1]! },
+      params: { manager: `${company.manager.firstName} ${company.manager.lastName}`, shop: party.name, item: item.label, base: formatAmount(base), vat: formatAmount(vat), total: formatAmount(total), date: formatDate(date), month: MONTHS[monthOf(date) - 1]! },
     };
   },
 };

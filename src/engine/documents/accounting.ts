@@ -149,7 +149,7 @@ export function invoiceDocument({ company, books }: DocContext, invoice: Invoice
   };
 }
 
-export function analyticDocument({ rng, company, sector, truth, books }: DocContext): GameDocument {
+export function analyticDocument({ rng, company, sector, truth, books, analyticGrowth }: DocContext): GameDocument {
   const year = company.fiscalYear;
   const accounts = ['700', '604', '610', '611', '612', '613', '615', '620', '621', '6302', ...(sector.salesMode === 'invoice' ? ['400'] : []), '440', '411'];
   const opening = (account: string) => Math.abs(accountBalance(truth.entries, account, (e) => e.journal === 'OD' && e.date.endsWith('01-01')));
@@ -162,7 +162,7 @@ export function analyticDocument({ rng, company, sector, truth, books }: DocCont
         ? opening(account)
         : account === '6302'
           ? priorDepreciation
-          : Math.round(reference / (1 + rng.int(-3, 8) / 100));
+          : Math.round(reference / (1 + (analyticGrowth?.[account] ?? rng.int(-3, 8)) / 100));
     const variation = prior === 0 ? (current === 0 ? '—' : 'nouveau') : `${current >= prior ? '+' : ''}${formatPercent(((current - prior) / prior) * 100)}`;
     return { id: `r-${account}`, cells: [`${account} ${accountLabel(account)}`, amount(prior), amount(current), variation] };
   });

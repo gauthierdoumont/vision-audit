@@ -38,6 +38,14 @@
 - [x] Cabinet : grades (Stagiaire → Réviseur), promotions annoncées par Hélène, paris de Maxime (résultat au débrief), Inès et son outil Benford
 - [x] Niveaux 21-40 ; accueil en chapitres repliables ; niveau 21 joué dans Chromium avec confrontation (97/100)
 
+### J4
+- [x] 7 nouvelles anomalies : stock gonflé, stock obsolète, réparations activées (WorldCom), employé fantôme, cotisations patronales oubliées, litige non provisionné, parties liées non mentionnées (constat « annexe seulement »)
+- [x] Observation de l'inventaire physique (4 h) : liste d'inventaire du client et feuille de comptage ; revue des contrats
+- [x] Fausses pistes justifiées par un document (contrat d'entretien, acompte, embauche réelle, forte croissance), expliquées au débrief
+- [x] Anomalies multiples (jusqu'à 4) sans collision ; formats moyen (41-60) et long (61-80)
+- [x] Opinions : réserve, négative, abstention (lettre d'affirmation refusée), limitation (inventaire non observé), continuité (décrite ou masquée)
+- [x] Niveaux 41-80 ; partie du niveau 47 jouée dans Chromium
+
 ### Décisions
 - Dépôt `vision-audit` (et non `audit-detective`) : l'app est publiée sous `/vision-audit/`.
 - Thème clair/sombre automatique selon le système. Le réglage manuel et la taille de police viendront avec les écrans de jeu.
@@ -48,7 +56,7 @@
 - Questions d'entretien générales pour les fraudes (le joueur doit soupçonner), ciblées pour les erreurs du chapitre Stagiaire.
 - Budget des niveaux générés : max(chemin optimal ; 2,5 h) × marge de difficulté (×2 → ×1,2), arrondi à la demi-heure.
 - Seuil de signification : 0,5 à 1 % du chiffre d'affaires ; écarté de ±20 % du montant de l'anomalie pour éviter les cas ambigus.
-- Opinion : dès la difficulté 3, le client peut refuser de corriger (35 %) → avec réserve si l'anomalie est significative, sans réserve sinon.
+- Opinion (`src/engine/scenarios.ts`) : refus de corriger → réserve si significatif ; négative si au moins 3 anomalies significatives ou total ≥ 10 × le seuil (règle simplifiée du jeu, le caractère diffus relève du jugement — ISA 705) ; abstention si la lettre d'affirmation est refusée (ISA 580) ; continuité décrite → paragraphe ; masquée → réserve + mention.
 - Compte saisi accepté s'il est le compte attendu ou un compte parent d'au moins 2 chiffres (ex. 23 pour 2300).
 - Assertions retenues : existence (double facture, inversion, TVA restaurant), évaluation (taux de TVA, amortissement), présentation (investissement en charges).
 - Niveau 1 : réponse attendue = compte 440 (3 392 €, TVAC) ou 604 (3 200 €, HTVA) ; assertion existence ; erreur ; écriture D 440 3 392 / C 604 3 200 / C 411 192 ; opinion sans réserve (client qui corrige), pas de paragraphe continuité.
@@ -64,6 +72,10 @@
 - Compte 110 « Apport disponible » pour le capital des SRL (CSA), 100 pour les SA (`pcmn.ts`, `ledger.ts`).
 - Choix des assertions par anomalie (voir Décisions).
 - Pas d'impôt des sociétés comptabilisé dans les cas générés (simplification).
+- Créance douteuse : réduction de valeur sur le montant HTVA (TVA récupérable).
+- Stock obsolète : valeur de réalisation estimée à 20 % du coût.
+- Parties liées : mention en annexe des transactions hors conditions du marché (seuils et schéma à confirmer).
+- Sonnette d'alarme SRL : art. 5:153 CSA.
 - Règles déjà utilisées en J1 : TVA 6 % sur la farine, le sucre et le lait ; 21 % sur le nettoyage, les emballages, l'entretien ; TVA non déductible sur les frais de restaurant.
 
 ### Prochaine étape

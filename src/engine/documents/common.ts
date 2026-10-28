@@ -12,6 +12,10 @@ export type DocContext = {
   books: Books;
   confirmedSuppliers: string[];
   confirmedClients: string[];
+  /** Croissance N/N-1 imposée pour certains comptes (fausse piste « forte hausse »). */
+  analyticGrowth?: Record<string, number>;
+  /** Procédures impossibles (limitation de l'étendue des travaux). */
+  unavailable?: string[];
 };
 
 export const isQ4 = (e: { date: string }) => monthOf(e.date) >= 10;

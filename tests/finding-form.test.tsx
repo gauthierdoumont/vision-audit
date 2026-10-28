@@ -30,7 +30,7 @@ describe('FindingForm', () => {
     set('Crédit ligne 2', '3200');
     set('Compte ligne 3', '411');
     set('Crédit ligne 3', '192');
-    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Journal des achats/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter le constat' }));
     expect(onAdd).toHaveBeenCalledOnce();
     expect(onAdd.mock.calls[0]![0]).toMatchObject({ account: '440', amount: 3392, qualification: 'erreur' });
@@ -43,5 +43,20 @@ describe('parseAmount', () => {
     expect(parseAmount('3.392,50')).toBe(3392.5);
     expect(parseAmount('192.5')).toBe(192.5);
     expect(parseAmount('abc')).toBeNaN();
+  });
+});
+
+describe('FindingForm — information en annexe', () => {
+  it('accepte un constat sans écriture quand l’annexe seule est en cause', () => {
+    const onAdd = vi.fn();
+    render(<FindingForm level={level001} pins={['journal-achats#a0413']} onAdd={onAdd} onCancel={() => undefined} />);
+    fireEvent.change(screen.getByLabelText(/^Compte touché/), { target: { value: '604' } });
+    fireEvent.change(screen.getByLabelText('Assertion'), { target: { value: 'presentation' } });
+    fireEvent.change(screen.getByLabelText("Montant de l'anomalie (€)"), { target: { value: '1000' } });
+    fireEvent.click(screen.getByLabelText('Fraude'));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Aucune écriture/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Journal des achats/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter le constat' }));
+    expect(onAdd.mock.calls[0]![0]).toMatchObject({ correction: [] });
   });
 });

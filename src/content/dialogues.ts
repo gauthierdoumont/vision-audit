@@ -96,7 +96,7 @@ export const GENERIC_TOPICS: Record<Role, GenericTopic[]> = {
 
 /** Réponse à une confrontation avec un indice qui ne contredit pas le mensonge. */
 export const DENIALS: Record<CharacterProfile, string[]> = {
-  cooperatif: ['Je ne vois pas le rapport, désolé.'],
+  cooperatif: ['Je ne vois pas le rapport, excusez-moi.'],
   nerveux: ['Je… non, ça n’a rien à voir. Vous m’embrouillez.'],
   evasif: ['Ce document ne prouve rien du tout.'],
   arrogant: ['Vous perdez votre temps. Et le mien.'],

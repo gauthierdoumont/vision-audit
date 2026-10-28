@@ -21,7 +21,7 @@ export function validateLevel(level: Level): string[] {
 
   if (level.anomalies.length === 0) fail('aucune anomalie');
   for (const anomaly of level.anomalies) {
-    if (!isBalanced(anomaly.correction)) fail(`écriture de correction déséquilibrée (${anomaly.id})`);
+    if (anomaly.disclosureOnly ? anomaly.correction.length > 0 : !isBalanced(anomaly.correction)) fail(`écriture de correction invalide (${anomaly.id})`);
     for (const l of [...anomaly.correction, ...anomaly.accounts]) if (!findAccount(l.account)) fail(`compte hors PCMN ${l.account}`);
     for (const a of anomaly.accounts) if (!(a.amount > 0)) fail(`montant nul ou négatif (${anomaly.id})`);
     if (anomaly.traces.length < 2) fail(`moins de 2 traces (${anomaly.id})`);
@@ -31,6 +31,11 @@ export function validateLevel(level: Level): string[] {
       return cost !== undefined && cost > 0 && cost <= level.budgetHours;
     });
     if (!viaProcedure) fail(`aucune procédure du budget ne révèle ${anomaly.id}`);
+  }
+
+  for (const decoy of level.decoys ?? []) {
+    for (const clue of [...decoy.suspicious, ...decoy.justification]) if (!describeClue(level, clue)) fail(`fausse piste : indice introuvable ${clue}`);
+    if (!decoy.justification.some((clue) => reachable.has(clue.split('#')[0]!))) fail(`fausse piste sans justification accessible (${decoy.title})`);
   }
 
   if (!(level.optimalHours > 0) || !Number.isFinite(level.optimalHours)) fail('chemin optimal invalide');
@@ -50,12 +55,14 @@ export function validateLevel(level: Level): string[] {
 }
 
 /** Invariants comptables d'un cas généré (avant et après injection des anomalies). */
-export function validateCase({ level, truth, books, injections }: GeneratedCase): string[] {
+export function validateCase(generated: GeneratedCase): string[] {
+  const { level, truth, books, injections } = generated;
   const errors: string[] = [];
   const fail = (message: string) => errors.push(`${level.id} : ${message}`);
 
   for (const [name, b] of [['vérité', truth], ['livres', books]] as const) {
-    for (const entry of b.entries) if (!isEntryBalanced(entry.lines)) fail(`écriture déséquilibrée ${entry.id} (${name})`);
+    // Une écriture vide (ex. : stock inchangé) est tolérée ; toute autre doit être équilibrée.
+    for (const entry of b.entries) if (entry.lines.length > 0 && !isEntryBalanced(entry.lines)) fail(`écriture déséquilibrée ${entry.id} (${name})`);
     const totals = [...trialBalance(b.entries).values()].reduce((s, a) => ({ debit: s.debit + a.debit, credit: s.credit + a.credit }), { debit: 0, credit: 0 });
     if (totals.debit !== totals.credit) fail(`balance déséquilibrée (${name})`);
   }
@@ -85,8 +92,9 @@ export function validateCase({ level, truth, books, injections }: GeneratedCase)
     const net = (tb: typeof reference) => (tb.get(account)?.debit ?? 0) - (tb.get(account)?.credit ?? 0);
     if (net(corrected) !== net(reference)) fail(`la correction ne rétablit pas le compte ${account}`);
   }
+  for (const clue of generated.continuityTraces) if (!describeClue(level, clue)) fail(`indice de continuité introuvable ${clue}`);
   for (const injection of injections) {
-    if (!isEntryBalanced(injection.correction)) fail(`correction déséquilibrée (${injection.type})`);
+    if (!injection.disclosureOnly && !isEntryBalanced(injection.correction)) fail(`correction déséquilibrée (${injection.type})`);
     if (injection.accounts.some((a) => a.amount <= 0)) fail(`montant d’anomalie nul (${injection.type})`);
   }
   return errors;

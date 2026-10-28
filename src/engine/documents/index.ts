@@ -6,7 +6,7 @@ import {
 } from './accounting';
 import { isQ4, type DocContext } from './common';
 import { afterClosingDocument, bankConfirmation, bankStatement, clientConfirmation, cutoffDocument, registryDocument, supplierConfirmation } from './external';
-import { contractsDocument, lettersDocument, minutesDocument, payrollDocument, personnelDocument } from './internal';
+import { contractsDocument, countSheetDocument, inventoryListDocument, lettersDocument, minutesDocument, payrollDocument, personnelDocument } from './internal';
 
 export type { DocContext } from './common';
 
@@ -24,7 +24,8 @@ export type ProcedureId =
   | 'confirmation-bancaire'
   | 'benford'
   | 'parties-liees'
-  | 'contrats';
+  | 'contrats'
+  | 'inventaire';
 
 type ProcedureSpec = {
   id: ProcedureId;
@@ -92,6 +93,14 @@ export const PROCEDURES: ProcedureSpec[] = [
   { id: 'confirmation-bancaire', name: 'Confirmation bancaire', hours: 3, unlockLevel: 21, description: 'Demander aux banques de confirmer comptes et soldes au 31/12.', documents: (ctx) => [bankConfirmation(ctx)] },
   { id: 'benford', name: 'Analyse de Benford (Inès)', hours: 1, unlockLevel: 25, description: 'Inès passe toutes les factures d’achat au crible de la loi de Benford.', documents: (ctx) => [benfordDocument(ctx)] },
   { id: 'parties-liees', name: 'Recherche à la BCE (parties liées)', hours: 2, unlockLevel: 21, description: 'Consulter le registre des entreprises : qui dirige les fournisseurs et clients ?', documents: (ctx) => [registryDocument(ctx)] },
+  {
+    id: 'inventaire',
+    name: 'Observation de l’inventaire physique',
+    hours: 4,
+    unlockLevel: 41,
+    description: 'Assister au comptage du 31/12, recompter et obtenir la liste d’inventaire du client.',
+    documents: (ctx) => [inventoryListDocument(ctx), countSheetDocument(ctx)],
+  },
   { id: 'contrats', name: 'Revue des contrats', hours: 2, unlockLevel: 41, description: 'Lire les contrats en vigueur : engagements, conditions, clauses.', documents: (ctx) => [contractsDocument(ctx)] },
 ];
 
@@ -110,7 +119,7 @@ export function unlockLevelForDifficulty(difficulty: number): number {
 
 export function buildDocuments(ctx: DocContext, levelNumber: number): DocumentSet {
   const initial = [balanceDocument(ctx), purchaseJournal(ctx), supplierBalance(ctx), ...(invoiced(ctx) ? [salesJournal(ctx), clientBalance(ctx)] : [])];
-  const available = PROCEDURES.filter((p) => p.unlockLevel <= levelNumber && (!p.applies || p.applies(ctx)));
+  const available = PROCEDURES.filter((p) => p.unlockLevel <= levelNumber && (!p.applies || p.applies(ctx)) && !ctx.unavailable?.includes(p.id));
   const revealed = available.map((p) => ({ spec: p, documents: p.documents(ctx) }));
   const procedures: Procedure[] = revealed.map(({ spec, documents }) => ({
     id: spec.id,

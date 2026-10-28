@@ -23,7 +23,15 @@ export type AnomalyType =
   | 'unrecorded-invoice'
   | 'private-expense'
   | 'fictitious-bank-account'
-  | 'personal-transfer';
+  | 'personal-transfer'
+  // Stocks, immobilisations, personnel, provisions, parties liées (niveaux 41-80)
+  | 'inflated-stock'
+  | 'obsolete-stock'
+  | 'capitalized-expenses'
+  | 'ghost-employee'
+  | 'unrecorded-social-debt'
+  | 'unrecorded-provision'
+  | 'related-party-undisclosed';
 
 /** Personne du client concernée par l'anomalie, interrogée à son sujet. */
 export type Actor = 'manager' | 'accountant' | 'storekeeper' | 'sales';
@@ -52,6 +60,8 @@ export type Injection = {
   accounts: { account: string; amount: Cents }[];
   /** Écriture qui ramène les livres à la vérité ; vide si seule l'annexe est à compléter. */
   correction: EntryLine[];
+  /** Pas d'écriture : l'information doit figurer dans l'annexe des comptes annuels. */
+  disclosureOnly?: boolean;
   traces: TraceRef[];
   actor: Actor;
   /** Fraude : l'auteur ment sur le sujet ; ces indices permettent de le confronter. */

@@ -29,6 +29,9 @@ export function lettersDocument({ books }: DocContext): GameDocument {
   };
 }
 
+/** Numéro de déclaration Dimona fictif. */
+const dimona = (index: number) => `D-${String(70412 + index * 37).padStart(6, '0')}`;
+
 /** Journal de paie de décembre : une ligne par personne payée. */
 export function payrollDocument({ company, books }: DocContext): GameDocument {
   const netOf = (gross: number) => {
@@ -40,8 +43,11 @@ export function payrollDocument({ company, books }: DocContext): GameDocument {
     title: `Journal de paie — décembre ${company.fiscalYear}`,
     kind: 'journal',
     header: [company.name, 'Rémunérations de décembre, virements du 31/12'],
-    columns: ['Nom', 'Fonction', 'Brut', 'Net versé', 'Compte du bénéficiaire'],
-    lines: books.world.employees.map((e) => ({ id: `p-${e.id}`, cells: [`${e.firstName} ${e.lastName}`, e.role, amount(e.monthlyGross), amount(netOf(e.monthlyGross)), e.iban] })),
+    columns: ['Nom', 'Fonction', 'Brut', 'Net versé', 'Compte du bénéficiaire', 'Dimona'],
+    lines: books.world.employees.map((e, i) => ({
+      id: `p-${e.id}`,
+      cells: [`${e.firstName} ${e.lastName}`, e.role, amount(e.monthlyGross), amount(netOf(e.monthlyGross)), e.iban, e.registered ? dimona(i) : '—'],
+    })),
   };
 }
 
@@ -55,7 +61,7 @@ export function personnelDocument({ company, truth }: DocContext): GameDocument 
     columns: ['Nom', 'Fonction', 'Entrée', 'Dimona'],
     lines: truth.world.employees
       .filter((e) => e.registered)
-      .map((e, i) => ({ id: `e-${e.id}`, cells: [`${e.firstName} ${e.lastName}`, e.role, formatDate(e.startDate, true), `D-${String(70412 + i * 37).padStart(6, '0')}`] })),
+      .map((e, i) => ({ id: `e-${e.id}`, cells: [`${e.firstName} ${e.lastName}`, e.role, formatDate(e.startDate, true), dimona(i)] })),
   };
 }
 
@@ -67,5 +73,33 @@ export function contractsDocument({ books }: DocContext): GameDocument {
     header: ['Contrats conservés par le client'],
     columns: ['Contrat', 'Clause'],
     lines: books.world.contracts.flatMap((k) => k.clauses.map((clause, i) => ({ id: i === 0 ? `k-${k.id}` : `k-${k.id}-${i}`, cells: [k.title, clause] }))),
+  };
+}
+
+/** Liste d'inventaire établie par le client (quantités et valeurs qu'il a comptabilisées). */
+export function inventoryListDocument({ company, books }: DocContext): GameDocument {
+  const total = books.world.stock.reduce((s, i) => s + i.quantity * i.unitCost, 0);
+  return {
+    id: DOC.inventory,
+    title: `Liste d’inventaire au 31/12/${company.fiscalYear}`,
+    kind: 'report',
+    header: [company.name, 'Établie et signée par la gérance'],
+    columns: ['Article', 'Quantité', 'Coût unitaire', 'Valeur', 'Dernier mouvement'],
+    lines: [
+      ...books.world.stock.map((i) => ({ id: `s-${i.id}`, cells: [i.label, String(i.quantity), amount(i.unitCost), amount(i.quantity * i.unitCost), formatDate(i.lastMovement, true)] })),
+      { id: 'total', cells: ['Total du stock', '', '', amount(total), ''] },
+    ],
+  };
+}
+
+/** Feuille de comptage de Vigie & Associés lors de l'observation de l'inventaire physique. */
+export function countSheetDocument({ company, truth }: DocContext): GameDocument {
+  return {
+    id: DOC.count,
+    title: 'Observation de l’inventaire physique — feuille de comptage',
+    kind: 'report',
+    header: ['Vigie & Associés, présents le 31/12 au matin', `${company.name} — recomptage contradictoire`],
+    columns: ['Article', 'Quantité comptée', 'Observation'],
+    lines: truth.world.stock.map((i) => ({ id: `c-${i.id}`, cells: [i.label, String(i.quantity), i.countNote ?? 'RAS'] })),
   };
 }

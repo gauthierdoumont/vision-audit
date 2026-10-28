@@ -21,6 +21,7 @@ export function FindingForm({ level, pins, onAdd, onCancel }: Props) {
   const [qualification, setQualification] = useState<Qualification | ''>('');
   const [lines, setLines] = useState<Line[]>([emptyLine(), emptyLine()]);
   const [clues, setClues] = useState<string[]>([]);
+  const [disclosureOnly, setDisclosureOnly] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
   const entry = lines.map((l) => ({ account: l.account.trim(), debit: toNumber(l.debit), credit: toNumber(l.credit) }));
@@ -37,9 +38,11 @@ export function FindingForm({ level, pins, onAdd, onCancel }: Props) {
     if (!assertion) problems.push('Choisis une assertion.');
     if (!(parseAmount(amount) > 0)) problems.push('Indique un montant positif.');
     if (!qualification) problems.push('Qualifie le constat : erreur ou fraude.');
-    if (used.some((l) => !findAccount(l.account) || Number.isNaN(l.debit) || Number.isNaN(l.credit)))
-      problems.push('Chaque ligne d’écriture doit avoir un compte PCMN et des montants valides.');
-    else if (!isBalanced(used)) problems.push('L’écriture de correction doit être équilibrée (débit = crédit).');
+    if (!disclosureOnly) {
+      if (used.some((l) => !findAccount(l.account) || Number.isNaN(l.debit) || Number.isNaN(l.credit)))
+        problems.push('Chaque ligne d’écriture doit avoir un compte PCMN et des montants valides.');
+      else if (!isBalanced(used)) problems.push('L’écriture de correction doit être équilibrée (débit = crédit).');
+    }
     if (clues.length === 0) problems.push('Appuie le constat sur au moins un indice épinglé.');
     setErrors(problems);
     if (problems.length > 0 || !assertion || !qualification) return;
@@ -50,7 +53,7 @@ export function FindingForm({ level, pins, onAdd, onCancel }: Props) {
       assertion,
       amount: parseAmount(amount),
       qualification,
-      correction: used,
+      correction: disclosureOnly ? [] : used,
       clues,
     });
   }
@@ -109,47 +112,55 @@ export function FindingForm({ level, pins, onAdd, onCancel }: Props) {
 
       <fieldset>
         <legend>Écriture de correction</legend>
-        <div className="entry-grid">
-          <span>Compte</span>
-          <span>Débit</span>
-          <span>Crédit</span>
-          {lines.map((line, i) => (
-            <div key={i} className="entry-line">
-              <input
-                list="pcmn-list"
-                inputMode="numeric"
-                aria-label={`Compte ligne ${i + 1}`}
-                value={line.account}
-                onChange={(e) => updateLine(i, { account: e.target.value })}
-              />
-              <input
-                inputMode="decimal"
-                aria-label={`Débit ligne ${i + 1}`}
-                value={line.debit}
-                onChange={(e) => updateLine(i, { debit: e.target.value })}
-              />
-              <input
-                inputMode="decimal"
-                aria-label={`Crédit ligne ${i + 1}`}
-                value={line.credit}
-                onChange={(e) => updateLine(i, { credit: e.target.value })}
-              />
+        <label className="inline">
+          <input type="checkbox" checked={disclosureOnly} onChange={(e) => setDisclosureOnly(e.target.checked)} />
+          Aucune écriture : information à mentionner dans l’annexe
+        </label>
+        {!disclosureOnly && (
+          <>
+            <div className="entry-grid">
+              <span>Compte</span>
+              <span>Débit</span>
+              <span>Crédit</span>
+              {lines.map((line, i) => (
+                <div key={i} className="entry-line">
+                  <input
+                    list="pcmn-list"
+                    inputMode="numeric"
+                    aria-label={`Compte ligne ${i + 1}`}
+                    value={line.account}
+                    onChange={(e) => updateLine(i, { account: e.target.value })}
+                  />
+                  <input
+                    inputMode="decimal"
+                    aria-label={`Débit ligne ${i + 1}`}
+                    value={line.debit}
+                    onChange={(e) => updateLine(i, { debit: e.target.value })}
+                  />
+                  <input
+                    inputMode="decimal"
+                    aria-label={`Crédit ligne ${i + 1}`}
+                    value={line.credit}
+                    onChange={(e) => updateLine(i, { credit: e.target.value })}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="entry-actions">
-          <button type="button" className="link-button" onClick={() => setLines([...lines, emptyLine()])}>
-            + Ligne
-          </button>
-          {lines.length > 2 && (
-            <button type="button" className="link-button" onClick={() => setLines(lines.slice(0, -1))}>
-              − Ligne
-            </button>
-          )}
-        </div>
-        <p className={Math.abs(totalDebit - totalCredit) < 0.005 && totalDebit > 0 ? 'ok' : 'warning'}>
-          Débit {formatEuro(totalDebit)} · Crédit {formatEuro(totalCredit)}
-        </p>
+            <div className="entry-actions">
+              <button type="button" className="link-button" onClick={() => setLines([...lines, emptyLine()])}>
+                + Ligne
+              </button>
+              {lines.length > 2 && (
+                <button type="button" className="link-button" onClick={() => setLines(lines.slice(0, -1))}>
+                  − Ligne
+                </button>
+              )}
+            </div>
+            <p className={Math.abs(totalDebit - totalCredit) < 0.005 && totalDebit > 0 ? 'ok' : 'warning'}>
+              Débit {formatEuro(totalDebit)} · Crédit {formatEuro(totalCredit)}
+            </p>
+          </>
+        )}
       </fieldset>
 
       <fieldset>

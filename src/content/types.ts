@@ -83,6 +83,8 @@ export type Level = {
   anomalies: Anomaly[];
   expectedOpinion: { opinion: Opinion; continuity: boolean; explanation: string[] };
   hint: string[];
+  /** Fausses pistes : ce qui attire l'œil, et le document qui l'explique (révélées au débrief). */
+  decoys?: { title: string; explanation: string[]; suspicious: string[]; justification: string[] }[];
   /** Grade du joueur dans la campagne (Stagiaire, Assistant…). */
   grade?: string;
   /** Les collègues du cabinet : le pari de Maxime, les outils d'Inès. */

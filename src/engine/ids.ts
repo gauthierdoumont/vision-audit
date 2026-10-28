@@ -45,6 +45,7 @@ export const REF = {
   analytic: (account: string) => at(DOC.analytic, `r-${account}`),
   balance: (account: string) => at(DOC.balance, `l-${account}`),
   asset: (assetId: string) => at(DOC.assets, `a-${assetId}`),
+  assetTotal: () => at(DOC.assets, 'total'),
   cutoff: (line: string) => at(DOC.cutoff, line),
   afterClosing: (eventId: string) => at(DOC.afterClosing, `x-${eventId}`),
   minutes: (minuteId: string) => at(DOC.minutes, `m-${minuteId}`),

@@ -34,7 +34,9 @@ export function ConclusionTab({ level, state, dispatch }: Props) {
               {ASSERTION_LABELS[f.assertion]} · {QUALIFICATION_LABELS[f.qualification]} · {f.clues.length} indice(s)
             </p>
             <p className="entry-summary">
-              {f.correction.map((l) => `${l.account} ${l.debit ? `D ${formatEuro(l.debit)}` : `C ${formatEuro(l.credit)}`}`).join(' · ')}
+              {f.correction.length === 0
+                ? 'Aucune écriture — mention dans l’annexe'
+                : f.correction.map((l) => `${l.account} ${l.debit ? `D ${formatEuro(l.debit)}` : `C ${formatEuro(l.credit)}`}`).join(' · ')}
             </p>
           </li>
         ))}

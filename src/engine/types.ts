@@ -126,7 +126,15 @@ export type AfterEvent = { id: string; date: string; label: string; amount: Cent
 
 export type Delivery = { id: string; number: string; date: string; partyId: string; description: string; invoiceNumber?: string };
 
-export type StockItem = { id: string; label: string; quantity: number; unitCost: Cents; lastMovement: string };
+export type StockItem = {
+  id: string;
+  label: string;
+  quantity: number;
+  unitCost: Cents;
+  lastMovement: string;
+  /** Observation notée lors du comptage physique. */
+  countNote?: string;
+};
 
 export type Contract = { id: string; title: string; partyId?: string; clauses: string[] };
 
