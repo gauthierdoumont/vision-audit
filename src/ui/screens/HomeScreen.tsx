@@ -4,16 +4,6 @@ import type { GameState } from '../../game/state';
 import type { LevelResult } from '../../storage/db';
 import type { Screen } from '../App';
 
-type Mode = { id: string; label: string; detail: string };
-
-// Les autres modes arrivent aux jalons J5 ; ils sont affichés mais pas encore jouables.
-const UPCOMING_MODES: Mode[] = [
-  { id: 'quick', label: 'Partie rapide', detail: 'Un dossier court, 10-15 min' },
-  { id: 'big', label: 'Grand dossier', detail: 'Une enquête longue et piégeuse' },
-  { id: 'daily', label: 'Défi du jour', detail: 'Le même dossier pour tout le monde, un essai' },
-  { id: 'endless', label: 'Mode infini', detail: "Les dossiers s'enchaînent" },
-];
-
 type Props = {
   savedGame: GameState | null;
   results: LevelResult[];
@@ -38,6 +28,11 @@ export function HomeScreen({ savedGame, results, onStart, onNavigate }: Props) {
       {savedLevel && (
         <button type="button" className="primary wide" onClick={() => onStart(savedLevel.id, true)}>
           Reprendre : niveau {savedLevel.number} — {savedLevel.clientName}
+        </button>
+      )}
+      {savedGame && !savedLevel && (
+        <button type="button" className="primary wide" onClick={() => onStart(savedGame.levelId, true)}>
+          Reprendre la partie en cours
         </button>
       )}
 
@@ -79,15 +74,16 @@ export function HomeScreen({ savedGame, results, onStart, onNavigate }: Props) {
         );
       })}
 
-      <h2 className="section-title">Bientôt</h2>
+      <h2 className="section-title">Et aussi</h2>
       <nav className="menu" aria-label="Autres modes de jeu">
-        {UPCOMING_MODES.map((mode) => (
-          <button key={mode.id} type="button" className="menu-item" disabled>
-            <span className="menu-label">{mode.label}</span>
-            <span className="menu-detail">{mode.detail}</span>
-            <span className="badge">Bientôt</span>
-          </button>
-        ))}
+        <button type="button" className="menu-item" onClick={() => onNavigate('modes')}>
+          <span className="menu-label">Autres modes</span>
+          <span className="menu-detail">Partie rapide, grand dossier, défi du jour, mode infini</span>
+        </button>
+        <button type="button" className="menu-item" onClick={() => onNavigate('stats')}>
+          <span className="menu-label">Statistiques et points faibles</span>
+          <span className="menu-detail">Taux de réussite par cycle et par assertion</span>
+        </button>
       </nav>
 
       <button type="button" className="link-button" onClick={() => onNavigate('about')}>

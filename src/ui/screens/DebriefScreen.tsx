@@ -7,17 +7,17 @@ import type { ScoreResult } from '../../game/scoring';
 import type { GameState } from '../../game/state';
 import { formatEuro, formatHours } from '../format';
 
-type Props = { level: Level; state: GameState; result: ScoreResult; onReplay: () => void; onHome: () => void };
+type Props = { level: Level; state: GameState; result: ScoreResult; onReplay: () => void; onHome: () => void; onNext?: () => void };
 
 const mark = (ok: boolean) => (ok ? '✔' : '✘');
 
-export function DebriefScreen({ level, state, result, onReplay, onHome }: Props) {
+export function DebriefScreen({ level, state, result, onReplay, onHome, onNext }: Props) {
   const verdict =
     result.stars === 3 ? 'Impeccable. Je signe.' : result.stars > 0 ? 'Correct. On peut faire mieux.' : 'Je ne signe pas ça.';
 
   return (
     <section className="screen debrief">
-      <p className="eyebrow">Débrief · Niveau {level.number}</p>
+      <p className="eyebrow">Débrief · {level.number > 0 ? `Niveau ${level.number}` : level.grade}</p>
       <h1>{verdict}</h1>
       <p className="stars" aria-label={`${result.stars} étoile(s) sur 3`}>
         {'★'.repeat(result.stars)}
@@ -124,9 +124,37 @@ export function DebriefScreen({ level, state, result, onReplay, onHome }: Props)
         ))}
       </article>
 
+      {level.orion && (
+        <article className="card static orion">
+          <h2>Fil rouge — Orion Trading</h2>
+          {level.orion.map((p) => (
+            <p key={p}>{p}</p>
+          ))}
+        </article>
+      )}
+
+      {level.realCase && (
+        <article className="card static real-case">
+          <h2>L’affaire réelle : {level.realCase.name}</h2>
+          {!level.realCase.verified && <p className="badge-inline">À VÉRIFIER</p>}
+          {level.realCase.lines.map((p) => (
+            <p key={p}>{p}</p>
+          ))}
+          <p className="muted">Sources :</p>
+          <ul className="sources">
+            {level.realCase.sources.map((url) => (
+              <li key={url}>
+                <a href={url} target="_blank" rel="noopener noreferrer">{new URL(url).hostname.replace(/^www\./, '')}</a>
+              </li>
+            ))}
+          </ul>
+        </article>
+      )}
+
       <div className="form-actions">
         <button type="button" className="secondary" onClick={onReplay}>Rejouer</button>
-        <button type="button" className="primary" onClick={onHome}>Accueil</button>
+        <button type="button" className={onNext ? 'secondary' : 'primary'} onClick={onHome}>Accueil</button>
+        {onNext && <button type="button" className="primary" onClick={onNext}>Dossier suivant</button>}
       </div>
     </section>
   );

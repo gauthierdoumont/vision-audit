@@ -5,7 +5,9 @@ export function BriefingView({ level, onStart }: { level: Level; onStart: () => 
   return (
     <section className="screen briefing">
       <p className="eyebrow">
-        {level.grade ? `${level.grade} · ` : ''}Niveau {level.number} · {level.title}
+        {level.grade ? `${level.grade} · ` : ''}
+        {level.number > 0 ? `Niveau ${level.number} · ` : ''}
+        {level.title}
       </p>
       <article className="mail">
         <div className="mail-head">

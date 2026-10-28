@@ -151,7 +151,7 @@ export function invoiceDocument({ company, books }: DocContext, invoice: Invoice
 
 export function analyticDocument({ rng, company, sector, truth, books, analyticGrowth }: DocContext): GameDocument {
   const year = company.fiscalYear;
-  const accounts = ['700', '604', '610', '611', '612', '613', '615', '620', '621', '6302', ...(sector.salesMode === 'invoice' ? ['400'] : []), '440', '411'];
+  const accounts = ['700', '74', '604', '610', '611', '612', '613', '615', '620', '621', '6302', ...(sector.salesMode === 'invoice' ? ['400'] : []), '440', '411'];
   const opening = (account: string) => Math.abs(accountBalance(truth.entries, account, (e) => e.journal === 'OD' && e.date.endsWith('01-01')));
   const priorDepreciation = truth.assets.filter((a) => !a.acquisitionDate.startsWith(String(year))).reduce((s, a) => s + depreciationFor(a, year - 1), 0);
   const lines = accounts.map((account) => {

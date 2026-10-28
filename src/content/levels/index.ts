@@ -1,4 +1,5 @@
 import { generateLevel, levelClientName, levelTitle } from '../../engine/generate';
+import { modeLevel } from '../../engine/modes';
 import type { Level } from '../types';
 import { CAMPAIGN_SPECS } from './campaign';
 import { level001 } from './level-001';
@@ -27,6 +28,11 @@ export const LEVEL_SUMMARIES: LevelSummary[] = [
 export function getLevel(id: string): Level | undefined {
   const cached = cache.get(id);
   if (cached) return cached;
+  if (id.includes(':')) {
+    const level = modeLevel(id);
+    if (level) cache.set(id, level);
+    return level;
+  }
   const spec = specById.get(id);
   if (!spec) return undefined;
   const level = generateLevel(spec);

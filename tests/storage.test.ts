@@ -18,3 +18,21 @@ describe('sauvegarde', () => {
     expect(await loadResults()).toEqual([{ levelId: 'level-001', bestScore: 80, stars: 3 }]);
   });
 });
+
+describe('statistiques et réglages', () => {
+  it('cumule les réussites par cycle et par assertion', async () => {
+    const { recordStats, loadStats } = await import('../src/storage/db');
+    await recordStats([{ key: 'cycle:ventes', success: true }, { key: 'assertion:existence', success: false }]);
+    await recordStats([{ key: 'cycle:ventes', success: false }]);
+    const stats = await loadStats();
+    expect(stats.find((s) => s.key === 'cycle:ventes')).toEqual({ key: 'cycle:ventes', seen: 2, success: 1 });
+    expect(stats.find((s) => s.key === 'assertion:existence')).toEqual({ key: 'assertion:existence', seen: 1, success: 0 });
+  });
+
+  it('enregistre des valeurs diverses (mode infini, défi du jour)', async () => {
+    const { loadMeta, saveMeta } = await import('../src/storage/db');
+    await saveMeta('endless', { difficulty: 4, played: 3 });
+    expect(await loadMeta('endless')).toEqual({ difficulty: 4, played: 3 });
+    expect(await loadMeta('absent')).toBeUndefined();
+  });
+});

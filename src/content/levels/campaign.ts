@@ -2,15 +2,16 @@
 // les suivants sont générés à partir de leur graine. Audit Detective — créé par Gauthier Doumont.
 import type { LevelSpec } from '../../engine/generate';
 
-const spec = (number: number, sector: LevelSpec['sector'], difficulty: number, anomaly: LevelSpec['anomalies'][number]): LevelSpec => ({
+type Options = Pick<LevelSpec, 'decoys' | 'limitation' | 'goingConcern' | 'clientCorrects' | 'realCase' | 'orion'>;
+
+const spec = (number: number, sector: LevelSpec['sector'], difficulty: number, anomaly: LevelSpec['anomalies'][number], options: Options = {}): LevelSpec => ({
   number,
   seed: `vigie-${String(number).padStart(3, '0')}`,
   difficulty,
   sector,
   anomalies: [anomaly],
+  ...options,
 });
-
-type Options = Pick<LevelSpec, 'decoys' | 'limitation' | 'goingConcern' | 'clientCorrects'>;
 
 /** Niveau à plusieurs anomalies et options de scénario (formats moyen et long). */
 const story = (number: number, sector: LevelSpec['sector'], difficulty: number, anomalies: LevelSpec['anomalies'], options: Options = {}): LevelSpec => ({
@@ -59,7 +60,7 @@ export const CAMPAIGN_SPECS: LevelSpec[] = [
   spec(30, 'medical', 4, 'unrecorded-invoice'),
   spec(31, 'garage', 4, 'private-expense'),
   spec(32, 'informatique', 4, 'early-revenue'),
-  spec(33, 'construction', 4, 'fictitious-supplier'),
+  spec(33, 'construction', 4, 'fictitious-supplier', { orion: 'cameo' }),
   spec(34, 'grossiste', 4, 'doubtful-receivable'),
   spec(35, 'boulangerie', 4, 'personal-transfer'),
   spec(36, 'transport', 5, 'fictitious-bank-account'),
@@ -80,7 +81,7 @@ export const CAMPAIGN_SPECS: LevelSpec[] = [
   story(49, 'ecommerce', 5, ['duplicate-purchase', 'private-expense'], { decoys: ['maintenance-contract'] }),
   story(50, 'grossiste', 6, ['inflated-stock', 'capitalized-expenses'], { decoys: ['revenue-growth'] }),
   story(51, 'transport', 6, ['ghost-employee', 'personal-transfer'], { decoys: ['late-hire'] }),
-  story(52, 'construction', 6, ['obsolete-stock', 'early-revenue'], { decoys: ['supplier-advance'] }),
+  story(52, 'construction', 6, ['obsolete-stock', 'early-revenue'], { decoys: ['supplier-advance'], orion: 'cameo' }),
   story(53, 'detail', 6, ['fictitious-supplier', 'unrecorded-social-debt'], { decoys: ['maintenance-contract'] }),
   story(54, 'grossiste', 6, ['doubtful-receivable', 'wrong-vat-rate'], { decoys: ['supplier-advance'] }),
   story(55, 'medical', 6, ['unrecorded-provision', 'missing-depreciation'], { decoys: ['late-hire'] }),
@@ -96,7 +97,7 @@ export const CAMPAIGN_SPECS: LevelSpec[] = [
   story(63, 'garage', 7, ['capitalized-expenses', 'early-revenue'], { limitation: 'inventory', decoys: ['revenue-growth'] }),
   story(64, 'grossiste', 7, ['fictitious-sale', 'inflated-stock', 'unrecorded-invoice'], { clientCorrects: false, decoys: ['supplier-advance'] }),
   story(65, 'informatique', 7, ['ghost-employee', 'private-expense'], { limitation: 'representation-letter', decoys: ['late-hire'] }),
-  story(66, 'horeca', 8, ['unrecorded-social-debt', 'fictitious-bank-account'], { goingConcern: 'hidden', decoys: ['maintenance-contract'] }),
+  story(66, 'horeca', 8, ['unrecorded-social-debt', 'fictitious-bank-account'], { goingConcern: 'hidden', decoys: ['maintenance-contract'], orion: 'cameo' }),
   story(67, 'detail', 8, ['related-party-undisclosed', 'capitalized-expenses', 'inflated-stock'], { decoys: ['revenue-growth', 'supplier-advance'] }),
   story(68, 'ecommerce', 8, ['duplicate-purchase', 'restaurant-vat', 'personal-transfer', 'obsolete-stock'], { decoys: ['maintenance-contract'] }),
   story(69, 'construction', 8, ['fictitious-sale', 'unrecorded-invoice'], { goingConcern: 'disclosed', decoys: ['late-hire'] }),
@@ -108,7 +109,28 @@ export const CAMPAIGN_SPECS: LevelSpec[] = [
   story(75, 'informatique', 9, ['related-party-undisclosed', 'fictitious-sale', 'obsolete-stock'], { clientCorrects: false, decoys: ['revenue-growth'] }),
   story(76, 'grossiste', 9, ['unrecorded-invoice', 'unrecorded-social-debt', 'unrecorded-provision', 'doubtful-receivable'], { decoys: ['supplier-advance'] }),
   story(77, 'horeca', 10, ['personal-transfer', 'inflated-stock', 'unrecorded-provision'], { goingConcern: 'disclosed', decoys: ['maintenance-contract', 'late-hire'] }),
-  story(78, 'detail', 10, ['fictitious-supplier', 'capitalized-expenses', 'unrecorded-invoice'], { limitation: 'inventory', decoys: ['revenue-growth'] }),
+  story(78, 'detail', 10, ['fictitious-supplier', 'capitalized-expenses', 'unrecorded-invoice'], { limitation: 'inventory', decoys: ['revenue-growth'], orion: 'cameo' }),
   story(79, 'transport', 10, ['fictitious-supplier', 'personal-transfer', 'capitalized-expenses', 'related-party-undisclosed'], { clientCorrects: false, decoys: ['supplier-advance', 'late-hire'] }),
   story(80, 'construction', 10, ['fictitious-sale', 'ghost-employee', 'unrecorded-provision'], { goingConcern: 'hidden', clientCorrects: false, decoys: ['maintenance-contract', 'revenue-growth'] }),
+  // Chapitre « Réviseur » (81-100), format long : affaires réelles à l'échelle d'une PME, et dénouement Orion.
+  story(81, 'informatique', 8, ['circular-sales', 'unrecorded-invoice'], { realCase: 'lernout-hauspie', decoys: ['revenue-growth'] }),
+  story(82, 'grossiste', 8, ['fictitious-bank-account', 'inflated-stock'], { realCase: 'parmalat', decoys: ['supplier-advance'] }),
+  story(83, 'informatique', 8, ['capitalized-expenses', 'related-party-undisclosed'], { realCase: 'worldcom', decoys: ['maintenance-contract'] }),
+  story(84, 'grossiste', 8, ['overstated-rebates', 'obsolete-stock'], { realCase: 'ahold', decoys: ['revenue-growth'] }),
+  story(85, 'construction', 9, ['disguised-loan', 'fictitious-supplier'], { realCase: 'enron', orion: 'cameo', decoys: ['maintenance-contract'] }),
+  story(86, 'ecommerce', 9, ['fictitious-escrow', 'personal-transfer'], { realCase: 'wirecard', decoys: ['late-hire'] }),
+  story(87, 'informatique', 9, ['fictitious-bank-account', 'fictitious-sale'], { realCase: 'satyam', clientCorrects: false, decoys: ['supplier-advance'] }),
+  story(88, 'transport', 9, ['circular-sales', 'doubtful-receivable'], { realCase: 'lernout-hauspie', decoys: ['late-hire'] }),
+  story(89, 'horeca', 9, ['fictitious-bank-account', 'unrecorded-provision'], { realCase: 'parmalat', goingConcern: 'disclosed', decoys: ['maintenance-contract'] }),
+  story(90, 'detail', 9, ['capitalized-expenses', 'inflated-stock', 'ghost-employee'], { realCase: 'worldcom', decoys: ['revenue-growth'] }),
+  story(91, 'grossiste', 9, ['overstated-rebates', 'fictitious-sale'], { realCase: 'ahold', clientCorrects: false, decoys: ['supplier-advance'] }),
+  story(92, 'construction', 10, ['disguised-loan', 'unrecorded-provision'], { realCase: 'enron', goingConcern: 'hidden', orion: 'cameo', decoys: ['late-hire'] }),
+  story(93, 'ecommerce', 10, ['fictitious-escrow', 'private-expense', 'obsolete-stock'], { realCase: 'wirecard', decoys: ['maintenance-contract'] }),
+  story(94, 'garage', 10, ['fictitious-bank-account', 'early-revenue', 'unrecorded-social-debt'], { realCase: 'satyam', limitation: 'representation-letter', decoys: ['revenue-growth'] }),
+  story(95, 'informatique', 10, ['circular-sales', 'related-party-undisclosed'], { realCase: 'lernout-hauspie', clientCorrects: false, decoys: ['late-hire'] }),
+  story(96, 'transport', 10, ['capitalized-expenses', 'disguised-loan'], { realCase: 'worldcom', orion: 'cameo', decoys: ['supplier-advance'] }),
+  story(97, 'grossiste', 10, ['overstated-rebates', 'inflated-stock', 'unrecorded-invoice'], { realCase: 'ahold', goingConcern: 'disclosed', decoys: ['maintenance-contract'] }),
+  story(98, 'horeca', 10, ['fictitious-escrow', 'ghost-employee'], { realCase: 'wirecard', decoys: ['revenue-growth', 'late-hire'] }),
+  story(99, 'detail', 10, ['fictitious-bank-account', 'fictitious-supplier'], { realCase: 'satyam', clientCorrects: false, decoys: ['maintenance-contract'] }),
+  story(100, 'informatique', 10, ['circular-sales', 'fictitious-supplier', 'personal-transfer'], { orion: 'final', realCase: 'lernout-hauspie', decoys: ['supplier-advance', 'late-hire'] }),
 ];

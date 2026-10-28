@@ -85,6 +85,10 @@ export type Level = {
   hint: string[];
   /** Fausses pistes : ce qui attire l'œil, et le document qui l'explique (révélées au débrief). */
   decoys?: { title: string; explanation: string[]; suspicious: string[]; justification: string[] }[];
+  /** Affaire réelle dont le dossier s'inspire, révélée au débrief (niveaux 81-100). */
+  realCase?: { name: string; lines: string[]; sources: string[]; verified: boolean };
+  /** Fil rouge Orion Trading : ce que le joueur apprend au débrief. */
+  orion?: string[];
   /** Grade du joueur dans la campagne (Stagiaire, Assistant…). */
   grade?: string;
   /** Les collègues du cabinet : le pari de Maxime, les outils d'Inès. */

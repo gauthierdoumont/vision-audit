@@ -2,6 +2,8 @@
 // Audit Detective — créé par Gauthier Doumont.
 import { ANOMALY_TEXTS } from '../content/anomaly-texts';
 import { gradeFor, INES_LINES, MAXIME_BETS, PROMOTIONS } from '../content/firm';
+import { ORION_DEBRIEFS, ORION_FINAL_BRIEFING } from '../content/orion';
+import { REAL_CASES, type RealCaseId } from '../content/real-cases';
 import { SECTORS } from '../content/sectors';
 import type { Level, Procedure } from '../content/types';
 import { injectAnomaly, type AnomalyType, type InjectContext, type Injection } from './anomalies';
@@ -12,6 +14,7 @@ import { buildDocuments, unlockLevelForDifficulty } from './documents';
 import type { TraceRef } from './ids';
 import { afterClosingEvents, generateBooks } from './ledger';
 import { euros, formatAmount, roundTo, toEuros, type Cents } from './money';
+import { injectOrionCameo } from './orion';
 import { createRng } from './rng';
 import { expectedOpinion, injectDecoy, injectGoingConcern, type DecoyType, type GoingConcern, type Limitation } from './scenarios';
 import type { Books, Company, SectorId } from './types';
@@ -32,6 +35,12 @@ export type LevelSpec = {
   goingConcern?: GoingConcern;
   /** Le client corrige-t-il les anomalies ? Par défaut : tiré au hasard dès la difficulté 3. */
   clientCorrects?: boolean;
+  /** Affaire réelle dont le dossier s'inspire (fiche révélée au débrief). */
+  realCase?: RealCaseId;
+  /** Fil rouge : Orion Trading apparaît (« cameo ») ou est au cœur du dossier (« final »). */
+  orion?: 'cameo' | 'final';
+  /** Mode hors campagne (Partie rapide…) : pas de grade ni de promotion. */
+  mode?: string;
 };
 
 export type GeneratedCase = { level: Level; company: Company; truth: Books; books: Books; injections: Injection[]; continuityTraces: string[] };
@@ -68,9 +77,11 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
     difficulty: spec.difficulty,
     used: new Set(),
     newId: (prefix) => `${prefix}x${++idCounter}`,
+    orion: spec.orion === 'final',
   };
   const injections = spec.anomalies.map((type, i) => injectAnomaly(type, { ...context, rng: rng.fork(`anomalie-${i}`) }));
   const decoys = (spec.decoys ?? []).map((type, i) => injectDecoy(type, { ...context, rng: rng.fork(`fausse-piste-${i}`) }));
+  if (spec.orion === 'cameo') injectOrionCameo({ ...context, rng: rng.fork('orion') });
   const continuity = spec.goingConcern ? injectGoingConcern({ ...context, rng: rng.fork('continuite') }, spec.goingConcern) : undefined;
   afterClosingEvents(truth, company, rng.fork('apres-cloture'));
   books.world.afterClosing = structuredClone(truth.world.afterClosing);
@@ -89,7 +100,8 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
       confirmedSuppliers: pick(injections.map((i) => i.supplierId), ranked('supplier', '440', -1)),
       confirmedClients: pick(injections.map((i) => i.clientId), ranked('client', '400', 1)),
       ...(spec.decoys?.includes('revenue-growth') ? { analyticGrowth: { '700': rng.fork('croissance').int(18, 26) } } : {}),
-      ...(spec.limitation === 'inventory' ? { unavailable: ['inventaire'] } : {}),
+      ...(spec.orion === 'final' ? [ORION_FINAL_BRIEFING] : []),
+    ...(spec.limitation === 'inventory' ? { unavailable: ['inventaire'] } : {}),
     },
     unlockLevel,
   );
@@ -122,10 +134,10 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
   const texts = injections.map((i) => ANOMALY_TEXTS[i.type]);
   const managerName = `${company.manager.firstName} ${company.manager.lastName}`;
   const accountantName = `${company.accountant.firstName} ${company.accountant.lastName}`;
-  const promotion = PROMOTIONS[spec.number];
-  const ines = INES_LINES[spec.number];
+  const promotion = spec.mode ? undefined : PROMOTIONS[spec.number];
+  const ines = spec.mode ? undefined : INES_LINES[spec.number];
   const betHours = Math.min(budgetHours, Math.ceil(optimalHours + 1 + flavor.int(0, 2) / 2));
-  const maximeBet = spec.number >= 3 ? { hours: betHours, line: flavor.pick(MAXIME_BETS).replace('{heures}', hoursLabel(betHours)) } : undefined;
+  const maximeBet = spec.mode || spec.number >= 3 ? { hours: betHours, line: flavor.pick(MAXIME_BETS).replace('{heures}', hoursLabel(betHours)) } : undefined;
   const body = [
     ...(promotion ? [promotion] : []),
     `Nouveau dossier : ${company.name}, à ${company.city}. ${sector.label}, ${company.staff} salarié(s).`,
@@ -136,6 +148,7 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
     ]),
     `Comptable : ${accountantName}. Seuil de signification : ${formatAmount(materiality).replace(/,00$/, '')} €. Budget : ${hoursLabel(budgetHours)}.`,
     clientCorrects ? 'La gérance s’est engagée à corriger tout ce qu’on trouvera.' : `Attention : ${managerName} refuse d’avance de modifier des comptes déjà arrêtés.`,
+    ...(spec.orion === 'final' ? [ORION_FINAL_BRIEFING] : []),
     ...(spec.limitation === 'inventory' ? ['Nous avons été nommés en février : impossible d’assister à l’inventaire du 31/12, ni de le refaire.'] : []),
     ...(spec.limitation === 'representation-letter' ? [`Dernière nouvelle : ${managerName} refuse de signer la lettre d’affirmation.`] : []),
     ...(spec.decoys && spec.decoys.length > 0 && spec.difficulty <= 6 ? ['Méfie-toi des apparences : tout ce qui est inhabituel n’est pas une anomalie.'] : []),
@@ -182,7 +195,9 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
         }
       : {}),
     hint: texts.flatMap((t) => t.hint),
-    grade: gradeFor(spec.number),
+    grade: spec.mode ?? gradeFor(spec.number),
+    ...(spec.realCase ? { realCase: { ...REAL_CASES[spec.realCase] } } : {}),
+    ...(spec.orion && ORION_DEBRIEFS[spec.number] ? { orion: ORION_DEBRIEFS[spec.number] } : {}),
     firm: { ...(maximeBet ? { maximeBet } : {}), ...(ines ? { ines } : {}) },
   };
 

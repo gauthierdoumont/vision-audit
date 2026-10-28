@@ -2,14 +2,18 @@ import { useCallback, useEffect, useState } from 'react';
 import { getLevel } from '../content/levels';
 import type { Level } from '../content/types';
 import { scoreGame, type ScoreResult } from '../game/scoring';
+import { nextEndlessDifficulty } from '../engine/modes';
+import { statOutcomes } from '../game/progress';
 import { createGame, restoreGame, type GameState } from '../game/state';
-import { clearCurrentGame, loadCurrentGame, loadResults, recordResult, type LevelResult } from '../storage/db';
+import { clearCurrentGame, loadCurrentGame, loadMeta, loadResults, recordResult, recordStats, saveMeta, type LevelResult } from '../storage/db';
 import { GameScreen } from './game/GameScreen';
 import { AboutScreen } from './screens/AboutScreen';
 import { DebriefScreen } from './screens/DebriefScreen';
 import { HomeScreen } from './screens/HomeScreen';
+import { ModesScreen, type EndlessProgress } from './screens/ModesScreen';
+import { StatsScreen } from './screens/StatsScreen';
 
-export type Screen = 'home' | 'about';
+export type Screen = 'home' | 'about' | 'modes' | 'stats';
 
 type View =
   | { name: Screen }
@@ -32,7 +36,12 @@ export function App() {
   }, [view.name, refresh]);
 
   const startLevel = (levelId: string, resume: boolean) => {
-    const level = getLevel(levelId);
+    let level: Level | undefined;
+    try {
+      level = getLevel(levelId);
+    } catch {
+      return;
+    }
     if (!level) return;
     const state = resume && savedGame?.levelId === levelId ? restoreGame(level, savedGame) : createGame(level);
     setView({ name: 'game', level, state });
@@ -42,6 +51,14 @@ export function App() {
     const result = scoreGame(level, state);
     clearCurrentGame().catch(() => undefined);
     recordResult({ levelId: level.id, bestScore: result.total, stars: result.stars }).catch(() => undefined);
+    recordStats(statOutcomes(result)).catch(() => undefined);
+    const [mode, a] = level.id.split(':');
+    if (mode === 'daily') saveMeta(`daily-${a}`, { score: result.total, stars: result.stars }).catch(() => undefined);
+    if (mode === 'endless') {
+      loadMeta<EndlessProgress>('endless')
+        .then((e) => saveMeta('endless', { difficulty: nextEndlessDifficulty(Number(a), result.stars), played: (e?.played ?? 0) + 1 }))
+        .catch(() => undefined);
+    }
     setView({ name: 'debrief', level, state, result });
   }, []);
 
@@ -56,6 +73,8 @@ export function App() {
         />
       )}
       {view.name === 'about' && <AboutScreen onBack={() => setView({ name: 'home' })} />}
+      {view.name === 'modes' && <ModesScreen onStart={(id) => startLevel(id, false)} onBack={() => setView({ name: 'home' })} />}
+      {view.name === 'stats' && <StatsScreen onStart={(id) => startLevel(id, false)} onBack={() => setView({ name: 'home' })} />}
       {view.name === 'game' && (
         <GameScreen
           key={view.level.id}
@@ -72,6 +91,7 @@ export function App() {
           result={view.result}
           onReplay={() => setView({ name: 'game', level: view.level, state: createGame(view.level) })}
           onHome={() => setView({ name: 'home' })}
+          {...(view.level.id.startsWith('endless:') ? { onNext: () => setView({ name: 'modes' }) } : {})}
         />
       )}
     </main>

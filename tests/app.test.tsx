@@ -8,7 +8,9 @@ describe('App', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: 'Audit Detective' })).toBeTruthy();
     expect(screen.getByText('Campagne')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Autres modes/ }));
     expect(screen.getByText('Défi du jour')).toBeTruthy();
+    expect(screen.getByText('Grand dossier')).toBeTruthy();
   });
 
   it('ouvre « À propos » avec le crédit, puis revient', () => {

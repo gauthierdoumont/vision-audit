@@ -31,7 +31,12 @@ export type AnomalyType =
   | 'ghost-employee'
   | 'unrecorded-social-debt'
   | 'unrecorded-provision'
-  | 'related-party-undisclosed';
+  | 'related-party-undisclosed'
+  // Montages inspirés d'affaires réelles (niveaux 81-100)
+  | 'circular-sales'
+  | 'overstated-rebates'
+  | 'disguised-loan'
+  | 'fictitious-escrow';
 
 /** Personne du client concernée par l'anomalie, interrogée à son sujet. */
 export type Actor = 'manager' | 'accountant' | 'storekeeper' | 'sales';
@@ -47,6 +52,8 @@ export type InjectContext = {
   used: Set<string>;
   /** Identifiant unique pour une écriture, une facture ou un tiers ajouté par l'anomalie. */
   newId: (prefix: string) => string;
+  /** Dénouement du fil rouge : les sociétés écrans du dossier sont Orion Trading. */
+  orion?: boolean;
 };
 
 export type Injection = {

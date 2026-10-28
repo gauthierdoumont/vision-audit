@@ -1,6 +1,7 @@
 // Fraudes et erreurs du cycle achats / fournisseurs. Audit Detective — créé par Gauthier Doumont.
 import { LOCALITIES, STREETS } from '../../content/names';
 import { REF } from '../ids';
+import { orionParty } from '../orion';
 import { between, fictitiousCompanyNumber, MONTHS, sortEntries } from '../ledger';
 import { addDays, formatAmount, formatDate, isoDate, monthOf } from '../money';
 import type { Entry, Invoice, Party } from '../types';
@@ -35,14 +36,17 @@ export const fictitiousSupplier: AnomalyDefinition = {
     const { books, truth, rng, company } = ctx;
     const year = company.fiscalYear;
     const accountant = books.world.employees.find((e) => e.role === 'Comptabilité')!;
-    const party: Party = {
-      id: ctx.newId('p'),
-      kind: 'supplier',
-      name: `${rng.pick(['Optima Conseil', 'Gestion & Stratégie', 'BizConsult Partners', 'Process Advisory'])} SRL`,
-      address: `Boîte postale ${rng.int(100, 999)}, 5000 Namur`,
-      iban: accountant.iban,
-    };
-    addParty(ctx, party);
+    const party: Party = ctx.orion
+      ? { ...orionParty(ctx, 'supplier'), iban: accountant.iban }
+      : {
+          id: ctx.newId('p'),
+          kind: 'supplier',
+          name: `${rng.pick(['Optima Conseil', 'Gestion & Stratégie', 'BizConsult Partners', 'Process Advisory'])} SRL`,
+          address: `Boîte postale ${rng.int(100, 999)}, 5000 Namur`,
+          iban: accountant.iban,
+        };
+    if (ctx.orion) for (const b of [truth, books]) b.parties.find((p) => p.id === party.id)!.iban = accountant.iban;
+    else addParty(ctx, party);
     ctx.used.add(party.id);
     // Juste sous le seuil de 5 000 € HTVA au-delà duquel la gérance doit signer.
     const months = [10, 11];
@@ -71,6 +75,8 @@ export const fictitiousSupplier: AnomalyDefinition = {
     }
     const base = fakes.reduce((s, f) => s + totalsOf(f.invoice).base, 0);
     const total = fakes.reduce((s, f) => s + totalsOf(f.invoice).total, 0);
+    // Une vraie coquille vide (Orion) figure à la BCE ; une société inventée, non.
+    const registryRef = party.registryId ? REF.registry(party.registryId) : REF.registry(`none-${party.id}`);
     return {
       type: 'fictitious-supplier',
       cycle: 'achats',
@@ -83,12 +89,12 @@ export const fictitiousSupplier: AnomalyDefinition = {
         ...fakes.map((f) => REF.purchase(f.purchase.id)),
         REF.invoiceLine(fakes[0]!.invoice.id, 'iban'),
         REF.payroll(accountant.id),
-        REF.registry(`none-${party.id}`),
+        registryRef,
         REF.benfordThreshold(),
         REF.confession(),
       ],
-      contradictedBy: [REF.payroll(accountant.id), REF.registry(`none-${party.id}`), REF.invoiceLine(fakes[0]!.invoice.id, 'iban')],
-      params: { supplier: party.name, count: String(fakes.length), base: formatAmount(base), total: formatAmount(total), iban: party.iban, accountant: `${accountant.firstName} ${accountant.lastName}` },
+      contradictedBy: [REF.payroll(accountant.id), registryRef, REF.invoiceLine(fakes[0]!.invoice.id, 'iban')],
+      params: { registry: party.registryId ? 'coquille' : 'inconnue', supplier: party.name, count: String(fakes.length), base: formatAmount(base), total: formatAmount(total), iban: party.iban, accountant: `${accountant.firstName} ${accountant.lastName}` },
     };
   },
 };

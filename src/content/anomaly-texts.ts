@@ -208,7 +208,7 @@ export const ANOMALY_TEXTS: Record<AnomalyType, AnomalyText> = {
     levelTitles: ['Le consultant fantôme', 'Des conseils hors de prix', 'Juste sous le seuil'],
     title: (p) => `Fournisseur fictif ${p.supplier} : ${p.total} € versés sur le compte du comptable`,
     explanation: (p) => [
-      `${p.supplier} n’existe pas à la BCE. Ses ${p.count} factures « de conseil » sont payées sur le compte ${p.iban}, celui de ${p.accountant} (journal de paie).`,
+      `${p.supplier} ${p.registry === 'coquille' ? 'est une coquille vide (boîte postale, aucune activité réelle)' : 'n’existe pas à la BCE'}. Ses ${p.count} factures « de conseil » sont payées sur le compte ${p.iban}, celui de ${p.accountant} (journal de paie).`,
       'Les montants sont juste sous le seuil de 5 000 € HTVA qui impose la signature de la gérance : un classique.',
       `Correction : sortir les charges (613) et la TVA déduite (411), et constater une créance de ${p.total} € sur l’employé (416).`,
       'Assertion touchée : l’existence. C’est une fraude (détournement).',
@@ -419,6 +419,78 @@ export const ANOMALY_TEXTS: Record<AnomalyType, AnomalyText> = {
       confession: (p) => [`${p.supplier}, c’est ma société, oui.`, 'Je ne pensais pas que ça devait figurer quelque part.'],
     },
     isa: 'ISA 550 (parties liées), ISA 240 (fraude)',
+  },
+  'circular-sales': {
+    levelTitles: ['Le grand carrousel', 'Des clients trop proches', 'L’argent qui revient'],
+    title: (p) => `Ventes circulaires à ${p.partner} (${p.total} €)`,
+    explanation: (p) => [
+      `${p.partner}, créée l’an dernier, est dirigée par la gérance. Elle « achète » des licences (${p.base} € HTVA) et paie avec… l’argent que la société vient de lui avancer.`,
+      'Une lettre annexe lui permet de tout rendre sans frais : il n’y a pas de vente, seulement un aller-retour de trésorerie.',
+      'Correction : annuler la vente (700, 451) et l’avance (416) ; la trésorerie ne change pas.',
+      'Assertion touchée : l’existence. C’est une fraude, sur le mécanisme de Lernout & Hauspie.',
+    ],
+    hint: ['Qui est ce nouveau client ? D’où vient l’argent qui a payé sa facture ?'],
+    focus: 'les ventes',
+    topic: {
+      question: () => 'Qui sont vos nouveaux clients cette année ?',
+      answer: (p) => [`${p.partner}, un distributeur prometteur. Il a cru en nous dès le premier jour.`, 'Il a payé rubis sur l’ongle, vous l’avez vu à la banque.'],
+      confession: () => ['C’est ma structure, oui. Et l’argent venait de chez nous.', 'Il fallait montrer de la croissance aux investisseurs.'],
+    },
+    isa: 'ISA 240 (fraude), ISA 550 (parties liées), ISA 505 (confirmations externes)',
+  },
+  'overstated-rebates': {
+    levelTitles: ['Des remises trop généreuses', 'La ristourne miracle', 'Le coup d’Ahold'],
+    title: (p) => `Ristourne fournisseur surévaluée (${p.supplier}, +${p.diff} €)`,
+    explanation: (p) => [
+      `L’accord avec ${p.supplier} prévoit ${p.rate} % du volume, soit ${p.real} €. La société a comptabilisé ${p.booked} € à recevoir.`,
+      `Les achats (604) sont minorés et les produits à recevoir (404) gonflés de ${p.diff} €.`,
+      'Assertion touchée : l’évaluation. C’est une fraude, sur le mécanisme d’Ahold / US Foodservice.',
+      'Leçon : une remise se vérifie dans le contrat et auprès du fournisseur, pas dans le tableur de la direction.',
+    ],
+    hint: ['Les produits à recevoir (404) ont une source : l’accord commercial. Fais le calcul.'],
+    focus: 'les achats',
+    topic: {
+      question: (p) => `Comment calculez-vous la ristourne de ${p.supplier} ?`,
+      answer: () => ['Selon nos négociations. Le fournisseur nous a promis un geste important cette année.', 'Ce n’est pas écrit partout, mais c’est acquis.'],
+      confession: () => ['L’accord dit bien ce que vous lisez.', 'J’ai anticipé des remises que nous n’obtiendrons sans doute jamais.'],
+    },
+    isa: 'ISA 240 (fraude), ISA 505 (confirmations externes), ISA 540 (estimations)',
+  },
+  'disguised-loan': {
+    levelTitles: ['Le partenaire providentiel', 'Une dette déguisée', 'Le montage hors bilan'],
+    title: (p) => `Emprunt via ${p.vehicle} présenté comme un produit (${p.amount} €)`,
+    explanation: (p) => [
+      `Les ${p.amount} € reçus de ${p.vehicle}, société de projet dirigée par la gérance, sont un prêt remboursable : la convention le dit.`,
+      'Ils ont été comptabilisés en produits (74) : le résultat est gonflé et une dette disparaît du bilan.',
+      'Correction : reclasser en dette (489). La garantie donnée à la banque est en plus un engagement à mentionner hors bilan.',
+      'Assertion touchée : la présentation. C’est une fraude, sur le mécanisme des entités ad hoc d’Enron.',
+    ],
+    hint: ['Une « indemnité » versée par une société inconnue ? Lis la convention qui la justifie.'],
+    focus: 'les produits exceptionnels',
+    topic: {
+      question: () => 'D’où viennent les autres produits d’exploitation de décembre ?',
+      answer: (p) => [`D’une indemnité de partenariat versée par ${p.vehicle}. Un excellent accord.`, 'Ce n’est pas remboursable, évidemment.'],
+      confession: () => ['C’est un prêt. Je l’ai fait passer par une société à part.', 'Au bilan, la dette aurait effrayé la banque.'],
+    },
+    isa: 'ISA 240 (fraude), ISA 550 (parties liées)',
+  },
+  'fictitious-escrow': {
+    levelTitles: ['L’argent du fiduciaire', 'Les milliards d’Asie (en petit)', 'Un compte de tiers introuvable'],
+    title: (p) => `Fonds chez le fiduciaire ${p.trustee} inexistants (${p.amount} €)`,
+    explanation: (p) => [
+      `La balance montre ${p.amount} € « détenus » par ${p.trustee}. Interrogé directement, le fiduciaire ne connaît pas la société.`,
+      'Les fonds n’existent pas : le produit (74) et l’actif (5502) doivent être annulés.',
+      'Assertion touchée : l’existence. C’est une fraude, sur le mécanisme de Wirecard.',
+      'Leçon : une confirmation obtenue par l’intermédiaire du client ne vaut rien ; on écrit soi-même au tiers.',
+    ],
+    hint: ['Demande directement au fiduciaire de confirmer les fonds.'],
+    focus: 'la trésorerie',
+    topic: {
+      question: () => 'Que représente le compte de tiers au bilan ?',
+      answer: (p) => [`Les commissions de nos partenaires de paiement, conservées par ${p.trustee}. C’est la norme du secteur.`, 'Les attestations ? Je vous les transmets moi-même, c’est plus rapide.'],
+      confession: () => ['Il n’y a rien sur ce compte.', 'Les attestations, c’est moi qui les ai faites.'],
+    },
+    isa: 'ISA 240 (fraude), ISA 505 (confirmations externes)',
   },
 };
 
