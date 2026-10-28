@@ -43,5 +43,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['tests/**/*.test.{ts,tsx}'],
+    // Les tests du moteur génèrent des centaines de dossiers : deux processus suffisent et ménagent la mémoire.
+    pool: 'forks',
+    poolOptions: { forks: { maxForks: 2, minForks: 1 } },
   },
 });

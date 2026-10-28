@@ -46,6 +46,15 @@
 - [x] Opinions : réserve, négative, abstention (lettre d'affirmation refusée), limitation (inventaire non observé), continuité (décrite ou masquée)
 - [x] Niveaux 41-80 ; partie du niveau 47 jouée dans Chromium
 
+### J5
+- [x] 4 montages inspirés d'affaires réelles : ventes circulaires (Lernout & Hauspie), remises fournisseurs gonflées (Ahold), emprunt déguisé via une société de projet (Enron), fonds fiduciaires fictifs (Wirecard) ; Parmalat, WorldCom et Satyam réutilisent les mécanismes existants
+- [x] Fiches « L'affaire réelle » (`src/content/real-cases.ts`), faits recoupés sur le web avec sources affichées au débrief, marquées À VÉRIFIER
+- [x] Fil rouge Orion Trading (niveaux 33, 52, 66, 78, 85, 92, 96 ; dénouement au niveau 100)
+- [x] Niveaux 81-100 : la campagne compte 100 niveaux, tous valides et résolus en 3 étoiles par le test automatique
+- [x] Modes : partie rapide (difficulté 1-4), grand dossier (6-10), défi du jour (graine = date, un essai), mode infini (difficulté adaptative), partie ciblée sur un cycle ; l'identifiant de la partie suffit à la régénérer
+- [x] Statistiques par cycle et par assertion, écran « Points faibles »
+- [x] IndexedDB version 2 (statistiques et réglages), avec mise à niveau des sauvegardes existantes
+
 ### Décisions
 - Dépôt `vision-audit` (et non `audit-detective`) : l'app est publiée sous `/vision-audit/`.
 - Thème clair/sombre automatique selon le système. Le réglage manuel et la taille de police viendront avec les écrans de jeu.
@@ -71,6 +80,7 @@
 - Seuil de signification à 0,5-1 % du chiffre d'affaires (`generate.ts`).
 - Compte 110 « Apport disponible » pour le capital des SRL (CSA), 100 pour les SA (`pcmn.ts`, `ledger.ts`).
 - Choix des assertions par anomalie (voir Décisions).
+- Fiches des affaires réelles (Lernout & Hauspie, Parmalat, Wirecard, Ahold, Enron, WorldCom, Satyam) : faits et chiffres à relire avec les sources indiquées.
 - Pas d'impôt des sociétés comptabilisé dans les cas générés (simplification).
 - Créance douteuse : réduction de valeur sur le montant HTVA (TVA récupérable).
 - Stock obsolète : valeur de réalisation estimée à 20 % du coût.

@@ -59,7 +59,8 @@ export function ModesScreen({ onStart, onBack }: Props) {
         <p className="muted">Le même dossier pour tout le monde aujourd’hui. Un seul essai.</p>
         {daily ? (
           <p>
-            Déjà joué aujourd’hui : <strong>{daily.score} / 100</strong> {'★'.repeat(daily.stars)}. Reviens demain !
+            Déjà joué aujourd’hui : <strong>{daily.score} / 100</strong>
+            {daily.stars > 0 ? ` ${'★'.repeat(daily.stars)}` : ''}. Reviens demain !
           </p>
         ) : (
           <button type="button" className="primary" onClick={() => onStart(`daily:${today}`)}>
