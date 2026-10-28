@@ -23,6 +23,8 @@ export type GameState = {
   sampledDocuments: string[];
   /** Sujets d'entretien abordés, au format `personnage.sujet`. */
   askedTopics: string[];
+  /** Confrontations tentées, au format `personnage.sujet|indice`. */
+  confrontations: string[];
   pins: string[];
   hintsUsed: number;
   findings: Finding[];
@@ -36,6 +38,7 @@ export type GameAction =
   | { type: 'run-procedure'; procedureId: string }
   | { type: 'sample'; procedureId: string; documentIds: string[] }
   | { type: 'ask-topic'; characterId: string; topicId: string }
+  | { type: 'confront'; characterId: string; topicId: string; clueId: string }
   | { type: 'toggle-pin'; clueId: string }
   | { type: 'use-hint' }
   | { type: 'add-finding'; finding: Finding }
@@ -52,6 +55,7 @@ export function createGame(level: Level): GameState {
     doneProcedures: [],
     sampledDocuments: [],
     askedTopics: [],
+    confrontations: [],
     pins: [],
     hintsUsed: 0,
     findings: [],
@@ -93,6 +97,12 @@ export function gameReducer(level: Level, state: GameState, action: GameAction):
       if (state.askedTopics.includes(key)) return state;
       return { ...state, hoursUsed: state.hoursUsed + INTERVIEW_HOURS, askedTopics: [...state.askedTopics, key] };
     }
+    case 'confront': {
+      const key = `${action.characterId}.${action.topicId}`;
+      const attempt = `${key}|${action.clueId}`;
+      if (!state.askedTopics.includes(key) || state.confrontations.includes(attempt) || confessed(level, state, action.characterId, action.topicId)) return state;
+      return { ...state, hoursUsed: state.hoursUsed + INTERVIEW_HOURS, confrontations: [...state.confrontations, attempt] };
+    }
     case 'toggle-pin': {
       const pinned = state.pins.includes(action.clueId);
       return {
@@ -133,4 +143,14 @@ export function restoreGame(level: Level, saved: Partial<GameState>): GameState 
 
 export function hoursLeft(level: Level, state: GameState): number {
   return level.budgetHours - state.hoursUsed;
+}
+
+/** Le personnage a-t-il avoué (confronté à un indice qui contredit son mensonge) ? */
+export function confessed(level: Level, state: GameState, characterId: string, topicId: string): boolean {
+  const topic = level.characters.find((c) => c.id === characterId)?.topics.find((t) => t.id === topicId);
+  if (!topic?.lie) return false;
+  return state.confrontations.some((attempt) => {
+    const [key, clueId] = attempt.split('|');
+    return key === `${characterId}.${topicId}` && topic.lie!.contradictedBy.includes(clueId!);
+  });
 }

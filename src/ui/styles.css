@@ -334,3 +334,20 @@ legend { font-weight: 600; padding: 0 4px; }
 .sample-list label.inline { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
 .scroll-hint { font-size: 0.75rem; color: #5b6475; margin: 0 0 4px; }
 @media (min-width: 760px) { .scroll-hint { display: none; } }
+
+/* ---------- Confrontation ---------- */
+.form-actions.start { justify-content: flex-start; }
+.confrontation { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border); }
+.confession .quote { border-left-color: var(--danger); }
+.link-button.evidence { text-align: left; text-decoration: none; color: var(--text); padding: 8px 0; margin: 0; font-size: 0.9rem; }
+.firm-notes { border-left: 3px solid var(--accent); padding: 4px 12px; margin: 12px 0; font-size: 0.92rem; }
+.firm-notes p { margin: 4px 0; }
+
+/* ---------- Chapitres de la campagne ---------- */
+.chapter { margin: 10px 0; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.chapter > summary { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 12px 16px; cursor: pointer; font-weight: 700; list-style: none; }
+.chapter > summary::-webkit-details-marker { display: none; }
+.chapter > summary::before { content: '▸'; margin-right: 6px; color: var(--accent); }
+.chapter[open] > summary::before { content: '▾'; }
+.chapter > summary > span:first-child { flex: 1; }
+.chapter .menu { margin: 0 10px 12px; }

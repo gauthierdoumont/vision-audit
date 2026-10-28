@@ -27,7 +27,13 @@ export type Procedure = {
   sampling?: { pool: string[]; batchSize: number };
 };
 
-export type Topic = { id: string; question: string; answer: string[] };
+export type Topic = {
+  id: string;
+  question: string;
+  answer: string[];
+  /** La réponse est un mensonge : confronté à l'un de ces indices, le personnage avoue. */
+  lie?: { contradictedBy: string[]; confession: string[]; denial: string[] };
+};
 
 export type CharacterProfile = 'cooperatif' | 'nerveux' | 'evasif' | 'arrogant' | 'complice';
 
@@ -52,6 +58,8 @@ export type Anomaly = {
   traces: string[];
   isa: string;
   explanation: string[];
+  /** Aucune écriture à passer : l'information manque dans l'annexe (ex. : parties liées). */
+  disclosureOnly?: boolean;
 };
 
 export type Opinion = 'sans-reserve' | 'avec-reserve' | 'negative' | 'abstention';
@@ -75,4 +83,8 @@ export type Level = {
   anomalies: Anomaly[];
   expectedOpinion: { opinion: Opinion; continuity: boolean; explanation: string[] };
   hint: string[];
+  /** Grade du joueur dans la campagne (Stagiaire, Assistant…). */
+  grade?: string;
+  /** Les collègues du cabinet : le pari de Maxime, les outils d'Inès. */
+  firm?: { maximeBet?: { hours: number; line: string }; ines?: string };
 };

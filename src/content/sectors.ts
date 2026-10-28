@@ -40,6 +40,10 @@ export type SectorSpec = {
   /** Part des charges de personnel dans le chiffre d'affaires (sert à fixer l'effectif). */
   personnelRatio: number;
   monthlyGross: Range;
+  /** Fonctions du personnel (le comptable est ajouté automatiquement). */
+  roles: readonly string[];
+  /** Activité exemptée de TVA (art. 44 CTVA) : pas de TVA sur les ventes, pas de déduction sur les achats. */
+  vatExempt?: boolean;
   assets: readonly AssetSpec[];
   capex: readonly (AssetSpec & { supplier: string })[];
 };
@@ -93,6 +97,7 @@ export const SECTORS: Record<SectorId, SectorSpec> = {
     clients: [],
     personnelRatio: 0.33,
     monthlyGross: [2_600, 3_100],
+    roles: ['Boulangerie', 'Pâtisserie', 'Vente au comptoir'],
     assets: [
       { label: 'Four à étages', account: '2300', depreciationAccount: '2309', years: 10, cost: [38_000, 55_000] },
       { label: 'Pétrin à spirale', account: '2300', depreciationAccount: '2309', years: 10, cost: [9_000, 14_000] },
@@ -147,6 +152,7 @@ export const SECTORS: Record<SectorId, SectorSpec> = {
     ],
     personnelRatio: 0.28,
     monthlyGross: [2_700, 3_300],
+    roles: ['Mécanique', 'Carrosserie', 'Accueil atelier'],
     assets: [
       { label: 'Pont élévateur', account: '2300', depreciationAccount: '2309', years: 10, cost: [8_000, 12_000] },
       { label: 'Outillage d’atelier', account: '2300', depreciationAccount: '2309', years: 5, cost: [10_000, 16_000] },
@@ -201,6 +207,7 @@ export const SECTORS: Record<SectorId, SectorSpec> = {
     ],
     personnelRatio: 0.45,
     monthlyGross: [3_300, 4_200],
+    roles: ['Technicien réseau', 'Développement', 'Support informatique'],
     assets: [
       { label: 'Serveurs et baie informatique', account: '2400', depreciationAccount: '2409', years: 3, cost: [14_000, 22_000] },
       { label: 'Postes de travail du personnel', account: '2400', depreciationAccount: '2409', years: 3, cost: [8_000, 14_000] },
@@ -254,6 +261,7 @@ export const SECTORS: Record<SectorId, SectorSpec> = {
     clients: [],
     personnelRatio: 0.4,
     monthlyGross: [2_500, 3_000],
+    roles: ['Cuisine', 'Service en salle', 'Plonge'],
     assets: [
       { label: 'Cuisine professionnelle', account: '2300', depreciationAccount: '2309', years: 10, cost: [35_000, 50_000] },
       { label: 'Hotte d’extraction', account: '2300', depreciationAccount: '2309', years: 10, cost: [8_000, 12_000] },
@@ -263,6 +271,271 @@ export const SECTORS: Record<SectorId, SectorSpec> = {
       { label: 'Piano de cuisson', account: '2300', depreciationAccount: '2309', years: 10, cost: [8_000, 12_000], supplier: 'Horeca Equip' },
       { label: 'Cellule de refroidissement rapide', account: '2300', depreciationAccount: '2309', years: 5, cost: [5_500, 8_000], supplier: 'Froid Service Namur' },
       { label: 'Lave-vaisselle à capot', account: '2300', depreciationAccount: '2309', years: 5, cost: [4_500, 6_500], supplier: 'Horeca Equip' },
+    ],
+  },
+  grossiste: {
+    id: 'grossiste',
+    label: 'Grossiste alimentaire',
+    companyNames: ['{nom} Distribution', 'Comptoir Alimentaire de {ville}', 'Grossiste {nom}', 'Delta Food {ville}'],
+    salesMode: 'invoice',
+    salesMix: [
+      { label: 'Denrées alimentaires', vatRate: 6, share: 0.8 },
+      { label: 'Boissons alcoolisées', vatRate: 21, share: 0.2 },
+    ],
+    annualRevenue: [900_000, 1_600_000],
+    purchaseRatio: 0.74,
+    seasonality: [0.9, 0.9, 0.95, 1, 1, 1.05, 1.05, 1, 1, 1, 1.05, 1.1],
+    suppliers: [
+      {
+        names: ['Fromagerie des Ardennes', 'Laiterie du Condroz', 'Crèmerie de Hesbaye'],
+        city: '6900 Marche-en-Famenne',
+        products: [
+          { label: 'Fromage à pâte dure — meule 10 kg', price: [95, 130], vatRate: 6 },
+          { label: 'Beurre — carton de 40 plaquettes', price: [85, 110], vatRate: 6 },
+        ],
+      },
+      {
+        names: ['Conserverie Mosane', 'Épicerie Centrale Benelux', 'Sapori Import'],
+        city: '4000 Liège',
+        products: [
+          { label: 'Conserves de légumes — carton de 24', price: [28, 40], vatRate: 6 },
+          { label: 'Pâtes sèches — carton de 20 kg', price: [32, 45], vatRate: 6 },
+          { label: 'Huile d’olive — bidon 5 l', price: [38, 55], vatRate: 6 },
+        ],
+      },
+      {
+        names: ['Brasserie Distribution Mosane', 'Vins & Spiritueux Lambert', 'Cave du Hainaut'],
+        city: '7000 Mons',
+        products: [
+          { label: 'Bière blonde — casier de 24', price: [18, 25], vatRate: 21 },
+          { label: 'Vin rouge — carton de 6', price: [30, 48], vatRate: 21 },
+        ],
+      },
+    ],
+    clients: ['Restaurant Le Relais', 'Épicerie Collard', 'Brasserie du Marché', 'Traiteur Renard SRL', 'Snack Chez Momo', 'Cantine scolaire Saint-Joseph', 'Hôtel des Remparts SA', 'Supérette Piron'],
+    personnelRatio: 0.1,
+    monthlyGross: [2_800, 3_300],
+    roles: ['Magasinier', 'Chauffeur-livreur', 'Commercial', 'Préparation de commandes'],
+    assets: [
+      { label: 'Chambre froide', account: '2300', depreciationAccount: '2309', years: 10, cost: [25_000, 40_000] },
+      { label: 'Camion frigorifique', account: '2410', depreciationAccount: '2419', years: 5, cost: [45_000, 65_000] },
+      { label: 'Rayonnages d’entrepôt', account: '2400', depreciationAccount: '2409', years: 10, cost: [8_000, 14_000] },
+    ],
+    capex: [
+      { label: 'Transpalette électrique', account: '2300', depreciationAccount: '2309', years: 5, cost: [6_000, 9_000], supplier: 'Manutention Wallonie' },
+      { label: 'Groupe frigorifique de remplacement', account: '2300', depreciationAccount: '2309', years: 10, cost: [8_000, 12_000], supplier: 'Froid Service Namur' },
+    ],
+  },
+  construction: {
+    id: 'construction',
+    label: 'Entreprise de construction',
+    companyNames: ['Construct {nom}', 'Bâtiments {nom} et Fils', 'Entreprise Générale {nom}', 'Gros Œuvre {ville}'],
+    salesMode: 'invoice',
+    // Clients particuliers (construction neuve, 21 %). Pas de chantier en autoliquidation pour rester simple.
+    salesMix: [{ label: 'Travaux de construction — état d’avancement', vatRate: 21, share: 1 }],
+    annualRevenue: [700_000, 1_400_000],
+    purchaseRatio: 0.38,
+    seasonality: [0.6, 0.7, 1, 1.1, 1.15, 1.15, 1.05, 0.9, 1.15, 1.15, 1.05, 0.7],
+    suppliers: [
+      {
+        names: ['Matériaux du Condroz', 'Négoce Bâti Wallonie', 'Briqueterie Lambert'],
+        city: '5590 Ciney',
+        products: [
+          { label: 'Briques de parement — palette', price: [380, 460], vatRate: 21 },
+          { label: 'Blocs béton — palette', price: [240, 300], vatRate: 21 },
+          { label: 'Ciment — palette de 40 sacs', price: [260, 320], vatRate: 21 },
+        ],
+      },
+      {
+        names: ['Béton Mosan', 'Centrale à Béton Henrard', 'Bétonnière de la Sambre'],
+        city: '6000 Charleroi',
+        products: [{ label: 'Béton prêt à l’emploi — m³', price: [105, 130], vatRate: 21 }],
+      },
+      {
+        names: ['Acier & Fer Wallonie', 'Ferraillage Martin', 'Armatures du Sud'],
+        city: '4500 Huy',
+        products: [{ label: 'Treillis d’armature — panneau', price: [28, 38], vatRate: 21 }],
+      },
+    ],
+    clients: ['M. et Mme Dupont — construction neuve', 'M. et Mme Lejeune — construction neuve', 'Famille Gilson — maison neuve', 'M. Renard — extension neuve', 'Mme Hubert — construction neuve', 'Famille Wouters — maison neuve'],
+    personnelRatio: 0.32,
+    monthlyGross: [3_000, 3_600],
+    roles: ['Maçon', 'Chef de chantier', 'Coffreur', 'Conducteur d’engins'],
+    assets: [
+      { label: 'Mini-pelle', account: '2300', depreciationAccount: '2309', years: 5, cost: [35_000, 50_000] },
+      { label: 'Camionnette benne', account: '2410', depreciationAccount: '2419', years: 5, cost: [30_000, 40_000] },
+      { label: 'Échafaudages', account: '2300', depreciationAccount: '2309', years: 10, cost: [12_000, 20_000] },
+    ],
+    capex: [
+      { label: 'Bétonnière de chantier', account: '2300', depreciationAccount: '2309', years: 5, cost: [4_500, 7_000], supplier: 'Chantier Equip' },
+      { label: 'Plaque vibrante', account: '2300', depreciationAccount: '2309', years: 5, cost: [4_000, 6_000], supplier: 'Chantier Equip' },
+    ],
+  },
+  ecommerce: {
+    id: 'ecommerce',
+    label: 'E-commerce',
+    companyNames: ['{nom} Shop', 'Clic & Colis {ville}', 'MaBoutique{ville}', 'Webstore {nom}'],
+    salesMode: 'counter',
+    salesMix: [{ label: 'Ventes en ligne (articles de maison)', vatRate: 21, share: 1 }],
+    annualRevenue: [400_000, 900_000],
+    purchaseRatio: 0.5,
+    seasonality: [0.85, 0.8, 0.9, 0.9, 0.95, 0.9, 0.85, 0.85, 0.95, 1.05, 1.4, 1.6],
+    suppliers: [
+      {
+        names: ['Maison Déco Import', 'Home Style Benelux', 'Décor Grossiste'],
+        city: '1300 Wavre',
+        products: [
+          { label: 'Lampes de table — lot de 10', price: [180, 240], vatRate: 21 },
+          { label: 'Coussins décoratifs — lot de 20', price: [140, 190], vatRate: 21 },
+          { label: 'Vases en céramique — lot de 12', price: [150, 210], vatRate: 21 },
+        ],
+      },
+      {
+        names: ['Emballages Dumont', 'Pack Wallonie', 'Cartonnages Lecomte'],
+        city: '6000 Charleroi',
+        products: [{ label: 'Cartons d’expédition — palette', price: [220, 300], vatRate: 21 }],
+      },
+      {
+        names: ['Textiles du Nord', 'Linge de Maison Peeters', 'Tissus Claes'],
+        city: '7000 Mons',
+        products: [{ label: 'Plaids en laine — lot de 10', price: [210, 280], vatRate: 21 }],
+      },
+    ],
+    clients: [],
+    personnelRatio: 0.15,
+    monthlyGross: [2_700, 3_200],
+    roles: ['Préparation des colis', 'Service client', 'Gestion du site'],
+    assets: [
+      { label: 'Serveur et matériel informatique', account: '2400', depreciationAccount: '2409', years: 3, cost: [8_000, 12_000] },
+      { label: 'Rayonnages de l’entrepôt', account: '2400', depreciationAccount: '2409', years: 10, cost: [6_000, 10_000] },
+    ],
+    capex: [
+      { label: 'Imprimante d’étiquettes industrielle', account: '2400', depreciationAccount: '2409', years: 3, cost: [4_000, 6_000], supplier: 'Infomat Grossiste' },
+      { label: 'Filmeuse de palettes', account: '2300', depreciationAccount: '2309', years: 5, cost: [5_000, 7_500], supplier: 'Manutention Wallonie' },
+    ],
+  },
+  transport: {
+    id: 'transport',
+    label: 'Transport de marchandises',
+    companyNames: ['Transports {nom}', '{nom} Logistique', 'Trans{ville}', 'Messageries {nom}'],
+    salesMode: 'invoice',
+    salesMix: [{ label: 'Transport de marchandises en Belgique', vatRate: 21, share: 1 }],
+    annualRevenue: [600_000, 1_200_000],
+    purchaseRatio: 0.3,
+    seasonality: [0.9, 0.9, 1, 1, 1, 1, 0.9, 0.85, 1.05, 1.1, 1.15, 1.05],
+    suppliers: [
+      {
+        names: ['Carburants Mosans', 'Diesel Pro Wallonie', 'Station Lambotte'],
+        city: '5300 Andenne',
+        products: [{ label: 'Gasoil routier — litre', price: [1.55, 1.85], vatRate: 21 }],
+      },
+      {
+        names: ['Pneus Poids Lourds Gilson', 'Gomme & Jante', 'Truck Pneus'],
+        city: '6220 Fleurus',
+        products: [{ label: 'Pneu poids lourd 315/80 R22,5', price: [380, 480], vatRate: 21 }],
+      },
+      {
+        names: ['Garage Poids Lourds Henrard', 'Truck Service Namur', 'Atelier Diesel Collard'],
+        city: '5000 Namur',
+        products: [
+          { label: 'Entretien périodique camion', price: [650, 900], vatRate: 21 },
+          { label: 'Pièces de freinage poids lourd', price: [300, 450], vatRate: 21 },
+        ],
+      },
+    ],
+    clients: ['Distribution Peeters SA', 'Matériaux du Condroz', 'Brasserie Distribution Mosane', 'Pack Wallonie', 'Meunerie du Condroz', 'Décor Grossiste'],
+    personnelRatio: 0.38,
+    monthlyGross: [2_900, 3_400],
+    roles: ['Chauffeur poids lourd', 'Planification', 'Mécanique'],
+    assets: [
+      { label: 'Tracteur routier', account: '2410', depreciationAccount: '2419', years: 5, cost: [90_000, 120_000] },
+      { label: 'Semi-remorque', account: '2410', depreciationAccount: '2419', years: 8, cost: [35_000, 50_000] },
+      { label: 'Mobilier de bureau', account: '2400', depreciationAccount: '2409', years: 10, cost: [5_000, 8_000] },
+    ],
+    capex: [
+      { label: 'Hayon élévateur', account: '2410', depreciationAccount: '2419', years: 5, cost: [6_000, 9_000], supplier: 'Truck Equip' },
+      { label: 'Système de géolocalisation de la flotte', account: '2400', depreciationAccount: '2409', years: 3, cost: [4_000, 6_500], supplier: 'Infomat Grossiste' },
+    ],
+  },
+  medical: {
+    id: 'medical',
+    label: 'Cabinet médical (société)',
+    companyNames: ['Centre Médical {nom}', 'Cabinet du Dr {nom}', 'Polyclinique de {ville}', 'Médical {nom}'],
+    salesMode: 'counter',
+    // Soins de santé exemptés de TVA (art. 44, § 1er, CTVA) : pas de TVA facturée ni déduite.
+    salesMix: [{ label: 'Honoraires médicaux', vatRate: 0, share: 1 }],
+    vatExempt: true,
+    annualRevenue: [350_000, 700_000],
+    purchaseRatio: 0.08,
+    seasonality: [1.1, 1.1, 1.05, 1, 0.95, 0.95, 0.8, 0.8, 1, 1.05, 1.1, 1.1],
+    suppliers: [
+      {
+        names: ['Médi-Fournitures Benelux', 'Pharma Distrib Wallonie', 'Santé Matériel'],
+        city: '1400 Nivelles',
+        products: [
+          { label: 'Gants d’examen — carton de 1 000', price: [55, 75], vatRate: 21 },
+          { label: 'Compresses stériles — carton', price: [35, 50], vatRate: 21 },
+        ],
+      },
+      {
+        names: ['Papeterie Martin', 'Bureau Plus Namur', 'Fournitures Lejeune'],
+        city: '5000 Namur',
+        products: [{ label: 'Papier et fournitures de bureau', price: [80, 140], vatRate: 21 }],
+      },
+    ],
+    clients: [],
+    personnelRatio: 0.3,
+    monthlyGross: [2_800, 3_400],
+    roles: ['Secrétariat médical', 'Soins infirmiers', 'Accueil'],
+    assets: [
+      { label: 'Échographe', account: '2300', depreciationAccount: '2309', years: 5, cost: [30_000, 45_000] },
+      { label: 'Mobilier des salles de consultation', account: '2400', depreciationAccount: '2409', years: 10, cost: [10_000, 16_000] },
+    ],
+    capex: [
+      { label: 'Électrocardiographe', account: '2300', depreciationAccount: '2309', years: 5, cost: [4_500, 7_000], supplier: 'Santé Matériel' },
+      { label: 'Table d’examen électrique', account: '2300', depreciationAccount: '2309', years: 10, cost: [4_000, 6_000], supplier: 'Santé Matériel' },
+    ],
+  },
+  detail: {
+    id: 'detail',
+    label: 'Commerce de détail',
+    companyNames: ['Quincaillerie {nom}', 'Bricolage de {ville}', 'Droguerie {nom}', 'Le Comptoir de {ville}'],
+    salesMode: 'counter',
+    salesMix: [{ label: 'Ventes au magasin (quincaillerie et bricolage)', vatRate: 21, share: 1 }],
+    annualRevenue: [350_000, 750_000],
+    purchaseRatio: 0.55,
+    seasonality: [0.8, 0.8, 1, 1.15, 1.2, 1.1, 0.95, 0.9, 1, 1, 0.95, 1.15],
+    suppliers: [
+      {
+        names: ['Outillage Benelux', 'Quincaillerie Grossiste Mertens', 'Fixations du Sud'],
+        city: '4000 Liège',
+        products: [
+          { label: 'Perceuses-visseuses — carton de 6', price: [280, 360], vatRate: 21 },
+          { label: 'Vis et chevilles — assortiment', price: [45, 70], vatRate: 21 },
+        ],
+      },
+      {
+        names: ['Peintures Wallonie', 'Couleurs & Co', 'Droguerie Centrale'],
+        city: '6000 Charleroi',
+        products: [{ label: 'Peinture murale — seaux de 10 l', price: [38, 55], vatRate: 21 }],
+      },
+      {
+        names: ['Jardin Pro Distribution', 'Horticulture Claes', 'Vert Grossiste'],
+        city: '5030 Gembloux',
+        products: [{ label: 'Terreau et engrais — palette', price: [320, 420], vatRate: 21 }],
+      },
+    ],
+    clients: [],
+    personnelRatio: 0.18,
+    monthlyGross: [2_600, 3_000],
+    roles: ['Vente', 'Caisse', 'Réception des marchandises'],
+    assets: [
+      { label: 'Agencement du magasin', account: '2400', depreciationAccount: '2409', years: 10, cost: [25_000, 40_000] },
+      { label: 'Caisses enregistreuses', account: '2400', depreciationAccount: '2409', years: 5, cost: [6_000, 9_000] },
+    ],
+    capex: [
+      { label: 'Machine à teinter la peinture', account: '2300', depreciationAccount: '2309', years: 5, cost: [5_000, 8_000], supplier: 'Couleurs & Co' },
+      { label: 'Gerbeur électrique', account: '2300', depreciationAccount: '2309', years: 5, cost: [4_500, 7_000], supplier: 'Manutention Wallonie' },
     ],
   },
 };

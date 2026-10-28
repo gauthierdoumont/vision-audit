@@ -1,21 +1,23 @@
-// Génère la comptabilité « vraie » d'un exercice : opérations, écritures, factures, immobilisations.
-// Les anomalies sont injectées ensuite (voir anomalies.ts). Audit Detective — créé par Gauthier Doumont.
+// Génère la comptabilité « vraie » d'un exercice : opérations, écritures, factures, immobilisations,
+// et le monde qui les entoure (personnel, registres, PV, livraisons, stock).
+// Les anomalies sont injectées ensuite (voir anomalies/). Audit Detective — créé par Gauthier Doumont.
 //
-// Simplifications assumées (À VÉRIFIER si on veut plus de réalisme) :
-// - ONSS travailleur 13,07 %, cotisations patronales ~25 %, précompte professionnel forfaitaire 22 % ;
+// Simplifications assumées :
+// - ONSS travailleur 13,07 %, cotisations patronales ~25 %, précompte professionnel forfaitaire 22 % (À VÉRIFIER) ;
 // - cotisations sociales et précompte payés le 15 du mois suivant ;
 // - TVA déclarée par trimestre, payée le 20 du mois suivant ; la TVA du 4e trimestre reste ouverte au 31/12 ;
 // - amortissements linéaires, prorata temporis par mois l'année d'acquisition.
+import { STREETS } from '../content/names';
 import { COMMON_SERVICES, SECTORS, type SupplierSpec } from '../content/sectors';
-import { fillTemplate } from './company';
+import { fillTemplate, randomPerson } from './company';
 import { invoiceTotals } from './invoices';
-import { addDays, daysInMonth, euros, isoDate, monthOf, quarterOf, roundTo, type Cents } from './money';
+import { addDays, daysInMonth, euros, formatAmount, isoDate, monthOf, quarterOf, roundTo, type Cents } from './money';
 import type { Rng } from './rng';
-import type { Books, Company, Entry, EntryLine, FixedAsset, Invoice, InvoiceLine, Party } from './types';
+import type { Books, Company, Employee, Entry, EntryLine, FixedAsset, Invoice, InvoiceLine, Party, StockItem, World } from './types';
 
-const WORKER_ONSS = 13.07;
-const EMPLOYER_ONSS = 25;
-const WITHHOLDING_TAX = 22;
+export const WORKER_ONSS = 13.07;
+export const EMPLOYER_ONSS = 25;
+export const WITHHOLDING_TAX = 22;
 
 export const MONTHS = [
   'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
@@ -24,13 +26,23 @@ export const MONTHS = [
 
 export type LedgerResult = { books: Books; company: Company; revenue: Cents };
 
-/** Équivalent d'une écriture : débit = crédit, sans ligne vide. */
-function line(account: string, debit: Cents, credit: Cents): EntryLine {
+export function line(account: string, debit: Cents, credit: Cents): EntryLine {
   return { account, debit, credit };
 }
 
-function between(rng: Rng, [min, max]: readonly [number, number], step = 1): Cents {
+export function between(rng: Rng, [min, max]: readonly [number, number], step = 1): Cents {
   return roundTo(rng.int(euros(min), euros(max)), euros(step));
+}
+
+/** IBAN fictif : le code de contrôle « 00 » n'est jamais attribué, aucun risque de tomber sur un vrai compte. */
+export function fictitiousIban(rng: Rng): string {
+  const block = () => String(rng.int(0, 9999)).padStart(4, '0');
+  return `BE00 9999 ${block()} ${block()}`;
+}
+
+/** Numéro d'entreprise fictif (préfixe 0000, inexistant à la BCE). */
+export function fictitiousCompanyNumber(rng: Rng): string {
+  return `0000.${String(rng.int(100, 999))}.${String(rng.int(100, 999))}`;
 }
 
 export function depreciationFor(asset: FixedAsset, year: number): Cents {
@@ -40,14 +52,24 @@ export function depreciationFor(asset: FixedAsset, year: number): Cents {
   return Math.min(Math.round((annual * months) / 12), asset.cost - asset.priorDepreciation);
 }
 
+export function emptyWorld(): World {
+  return { employees: [], registry: [], minutes: [], afterClosing: [], deliveries: [], stock: [], contracts: [], bankAccounts: [], letters: [] };
+}
+
+export function sortEntries(entries: Entry[]): void {
+  entries.sort((a, b) => (a.date === b.date ? 0 : a.date < b.date ? -1 : 1));
+}
+
 export function generateBooks(rng: Rng, company: Company, difficulty: number): LedgerResult {
   const spec = SECTORS[company.sector];
+  const deductible = !spec.vatExempt;
   const year = company.fiscalYear;
   const yearEnd = isoDate(year, 12, 31);
   const entries: Entry[] = [];
   const invoices: Invoice[] = [];
   const parties: Party[] = [];
   const assets: FixedAsset[] = [];
+  const world = emptyWorld();
   let counter = 0;
   const id = (prefix: string) => `${prefix}${++counter}`;
 
@@ -57,9 +79,21 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
     if (full.lines.length > 0) entries.push(full);
     return full;
   };
-  const addParty = (kind: Party['kind'], name: string, address: string): Party => {
-    const party = { id: `p${parties.length + 1}`, kind, name, address };
+  const addParty = (kind: Party['kind'], name: string, address: string, activity: string): Party => {
+    const registryId = `bce${world.registry.length + 1}`;
+    const party: Party = { id: `p${parties.length + 1}`, kind, name, address, iban: fictitiousIban(rng), registryId };
     parties.push(party);
+    const director = randomPerson(rng);
+    world.registry.push({
+      id: registryId,
+      name,
+      number: fictitiousCompanyNumber(rng),
+      address,
+      founded: String(rng.int(1985, year - 3)),
+      directors: [`${director.firstName} ${director.lastName}`],
+      activity,
+      status: 'Active',
+    });
     return party;
   };
 
@@ -67,8 +101,50 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
   const revenue = roundTo(between(rng, spec.annualRevenue), euros(1000));
   const seasonTotal = spec.seasonality.reduce((s, w) => s + w, 0);
   const monthlyRevenue = spec.seasonality.map((w) => Math.round((revenue * w) / seasonTotal));
-  const gross = between(rng, spec.monthlyGross, 50);
-  const staff = Math.max(1, Math.round((revenue * spec.personnelRatio) / (gross * (1 + EMPLOYER_ONSS / 100) * 12)));
+  const averageGross = between(rng, spec.monthlyGross, 50);
+  const staff = Math.max(2, Math.round((revenue * spec.personnelRatio) / (averageGross * (1 + EMPLOYER_ONSS / 100) * 12)));
+
+  // ---------- Société, banque, personnel ----------
+  world.registry.push({
+    id: 'bce0',
+    name: company.name,
+    number: fictitiousCompanyNumber(rng),
+    address: `${company.street}, ${company.postalCode} ${company.city}`,
+    founded: String(rng.int(1995, year - 6)),
+    directors: [`${company.manager.firstName} ${company.manager.lastName}`],
+    activity: spec.label,
+    status: 'Active',
+  });
+  world.bankAccounts.push({ id: 'bk1', bank: 'Banque de Wallonie', iban: fictitiousIban(rng), account: '550', label: 'Compte courant' });
+
+  const takenNames = [company.manager, company.accountant];
+  const employees: Employee[] = [
+    {
+      id: 'emp1',
+      ...company.accountant,
+      role: 'Comptabilité',
+      iban: fictitiousIban(rng),
+      startDate: isoDate(year - rng.int(3, 12), rng.int(1, 12), 1),
+      monthlyGross: roundTo(Math.round(averageGross * 1.1), euros(10)),
+      registered: true,
+    },
+  ];
+  for (let i = 1; i < staff; i++) {
+    const person = randomPerson(rng, takenNames);
+    takenNames.push(person);
+    employees.push({
+      id: `emp${i + 1}`,
+      ...person,
+      role: spec.roles[(i - 1) % spec.roles.length]!,
+      iban: fictitiousIban(rng),
+      startDate: isoDate(year - rng.int(0, 10), rng.int(1, 12), 1),
+      monthlyGross: roundTo(Math.round(averageGross * (rng.int(90, 110) / 100)), euros(10)),
+      registered: true,
+    });
+  }
+  // Une embauche de l'année commence à son mois d'entrée.
+  for (const e of employees) if (e.startDate > yearEnd) e.startDate = isoDate(year, 1, 1);
+  world.employees = employees;
 
   // ---------- Tiers ----------
   const numberFormats = [
@@ -79,7 +155,7 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
   ];
   type SupplierState = { party: Party; spec: SupplierSpec; format: (n: number) => string; next: number };
   const suppliers: SupplierState[] = spec.suppliers.map((s, i) => ({
-    party: addParty('supplier', rng.pick(s.names), s.city),
+    party: addParty('supplier', rng.pick(s.names), s.city, `Fournisseur — ${s.products[0]!.label.split(' — ')[0]!.toLowerCase()}`),
     spec: s,
     format: numberFormats[(i + rng.int(0, 3)) % numberFormats.length]!,
     next: rng.int(100, 900),
@@ -89,16 +165,30 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
     return s.format(s.next);
   };
 
-  const telecom = addParty('supplier', rng.pick(COMMON_SERVICES.telecom.names), '1000 Bruxelles');
-  const accountingFirm = addParty('supplier', rng.pick(COMMON_SERVICES.accountingFirm.names), `${company.postalCode} ${company.city}`);
-  const cleaning = addParty('supplier', rng.pick(COMMON_SERVICES.cleaning.names), '5000 Namur');
-  const restaurants = rng.shuffle(COMMON_SERVICES.restaurants).slice(0, 2).map((n) => addParty('supplier', n, `${company.postalCode} ${company.city}`));
+  const landlord = randomPerson(rng, takenNames);
+  const telecom = addParty('supplier', rng.pick(COMMON_SERVICES.telecom.names), '1000 Bruxelles', 'Télécommunications');
+  const accountingFirm = addParty('supplier', rng.pick(COMMON_SERVICES.accountingFirm.names), `${company.postalCode} ${company.city}`, 'Fiduciaire');
+  const cleaning = addParty('supplier', rng.pick(COMMON_SERVICES.cleaning.names), '5000 Namur', 'Nettoyage de bureaux');
+  const restaurants = rng
+    .shuffle(COMMON_SERVICES.restaurants)
+    .slice(0, 2)
+    .map((n) => addParty('supplier', n, `${company.postalCode} ${company.city}`, 'Restauration'));
   const capexSpec = rng.pick(spec.capex);
-  const capexSupplier = addParty('supplier', capexSpec.supplier, '5000 Namur');
+  const capexSupplier = addParty('supplier', capexSpec.supplier, '5000 Namur', 'Vente de matériel professionnel');
   const clients = rng
     .shuffle(spec.clients)
     .slice(0, 6)
-    .map((n) => addParty('client', fillTemplate(n, { ville: company.city }), `${company.postalCode} ${company.city}`));
+    .map((n) => addParty('client', fillTemplate(n, { ville: company.city }), `${rng.pick(STREETS)} ${rng.int(1, 150)}, ${company.postalCode} ${company.city}`, 'Client'));
+
+  world.contracts.push({
+    id: 'bail',
+    title: 'Bail commercial',
+    clauses: [
+      `Bailleur : ${landlord.firstName} ${landlord.lastName}. Locataire : ${company.name}.`,
+      `Loyer mensuel indexé, payable le 2 de chaque mois par domiciliation.`,
+      'Durée : 9 ans, renouvelable. Garantie locative bloquée sur un compte au nom du locataire.',
+    ],
+  });
 
   // ---------- Factures ----------
   const bookPurchase = (invoice: Invoice, label: string) => {
@@ -157,8 +247,8 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
     assets.push(asset);
     opening.push(line(asset.account, cost, 0), line(asset.depreciationAccount, 0, asset.priorDepreciation));
   }
-  const openingStock = roundTo(Math.round(revenue * spec.purchaseRatio * rng.int(4, 7) / 100), euros(10));
-  const openingBank = roundTo(Math.round((revenue * rng.int(8, 14)) / 100), euros(1) / 100);
+  const openingStock = roundTo(Math.round((revenue * spec.purchaseRatio * rng.int(4, 7)) / 100), euros(10));
+  const openingBank = roundTo(Math.round((revenue * rng.int(8, 14)) / 100), 1);
   const openingCash = between(rng, [400, 1500], 10);
   const capitalAccount = company.legalForm === 'SA' ? '100' : '110';
   const capital = company.legalForm === 'SA' ? euros(61_500) : rng.pick([euros(18_600), euros(20_000), euros(25_000)]);
@@ -186,7 +276,12 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
   const creditNoteMonths = [rng.int(2, 9), rng.int(10, 11)];
   const capexMonth = rng.int(10, 11);
   let saleNumber = rng.int(10, 60);
+  let deliveryNumber = rng.int(100, 400);
   let creditNoteNumber = rng.int(10, 90);
+  const rent = roundTo(Math.round((revenue * 0.035) / 12), euros(50));
+
+  const saleLines = (base: Cents): InvoiceLine[] =>
+    spec.salesMix.map((mix) => ({ label: mix.label, quantity: 1, unitPrice: Math.round(base * mix.share), vatRate: mix.vatRate }));
 
   for (let month = 1; month <= 12; month++) {
     const lastDay = daysInMonth(year, month);
@@ -199,7 +294,7 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
       const target = Math.round(((salesBase * spec.purchaseRatio) / invoicesPerMonth) * (rng.int(75, 125) / 100));
       const date = day();
       addPurchase(
-        { kind: 'invoice', number: nextNumber(s), date, dueDate: addDays(date, 30), partyId: s.party.id, account: '604', lines: goodsLines(s, target), vatDeductible: true },
+        { kind: 'invoice', number: nextNumber(s), date, dueDate: addDays(date, 30), partyId: s.party.id, account: '604', lines: goodsLines(s, target), vatDeductible: deductible },
         `Achat ${s.party.name}`,
         30 - rng.int(0, 4),
       );
@@ -208,6 +303,7 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
       const s = rng.pick(suppliers);
       const product = rng.pick(s.spec.products);
       const date = day();
+      const unitPrice = between(rng, product.price, 0.05);
       addPurchase(
         {
           kind: 'credit-note',
@@ -216,8 +312,8 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
           dueDate: date,
           partyId: s.party.id,
           account: '604',
-          lines: [{ label: `Retour : ${product.label}`, quantity: rng.int(4, 12), unitPrice: between(rng, product.price, 0.05), vatRate: product.vatRate }],
-          vatDeductible: true,
+          lines: [{ label: `Retour : ${product.label}`, quantity: Math.max(2, Math.round(euros(rng.int(300, 1500)) / unitPrice)), unitPrice, vatRate: product.vatRate }],
+          vatDeductible: deductible,
         },
         `Note de crédit ${s.party.name}`,
         15,
@@ -225,24 +321,23 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
     }
 
     // Services et frais généraux
-    const rent = roundTo(Math.round((revenue * 0.035) / 12), euros(50));
     addEntry({ journal: 'FIN', date: isoDate(year, month, 2), label: `Loyer ${MONTHS[month - 1]} — domiciliation`, lines: [line('610', rent, 0), line('550', 0, rent)] });
     const telecomDate = isoDate(year, month, 5);
     addPurchase(
-      { kind: 'invoice', number: `TEL${year}${String(month).padStart(2, '0')}${rng.int(1000, 9999)}`, date: telecomDate, dueDate: addDays(telecomDate, 20), partyId: telecom.id, account: '612', lines: [{ label: 'Abonnement internet et téléphonie', quantity: 1, unitPrice: between(rng, [85, 150], 0.01), vatRate: 21 }], vatDeductible: true },
+      { kind: 'invoice', number: `TEL${year}${String(month).padStart(2, '0')}${rng.int(1000, 9999)}`, date: telecomDate, dueDate: addDays(telecomDate, 20), partyId: telecom.id, account: '612', lines: [{ label: 'Abonnement internet et téléphonie', quantity: 1, unitPrice: between(rng, [85, 150], 0.01), vatRate: 21 }], vatDeductible: deductible },
       `Facture ${telecom.name}`,
       20,
     );
     const cleaningDate = isoDate(year, month, Math.min(lastDay, 27));
     addPurchase(
-      { kind: 'invoice', number: `NP-${year}-${month * 31 + rng.int(1, 30)}`, date: cleaningDate, dueDate: addDays(cleaningDate, 30), partyId: cleaning.id, account: '611', lines: [{ label: `Nettoyage des locaux — ${MONTHS[month - 1]}`, quantity: 1, unitPrice: between(rng, [240, 460], 5), vatRate: 21 }], vatDeductible: true },
+      { kind: 'invoice', number: `NP-${year}-${month * 31 + rng.int(1, 30)}`, date: cleaningDate, dueDate: addDays(cleaningDate, 30), partyId: cleaning.id, account: '611', lines: [{ label: `Nettoyage des locaux — ${MONTHS[month - 1]}`, quantity: 1, unitPrice: between(rng, [240, 460], 5), vatRate: 21 }], vatDeductible: deductible },
       `Facture ${cleaning.name}`,
       30,
     );
     if (month % 3 === 0) {
       const date = isoDate(year, month, 15);
       addPurchase(
-        { kind: 'invoice', number: `H-${year}-${month / 3}${rng.int(10, 99)}`, date, dueDate: addDays(date, 30), partyId: accountingFirm.id, account: '613', lines: [{ label: `Tenue de la comptabilité — trimestre ${month / 3}`, quantity: 1, unitPrice: between(rng, [900, 1800], 10), vatRate: 21 }], vatDeductible: true },
+        { kind: 'invoice', number: `H-${year}-${month / 3}${rng.int(10, 99)}`, date, dueDate: addDays(date, 30), partyId: accountingFirm.id, account: '613', lines: [{ label: `Tenue de la comptabilité — trimestre ${month / 3}`, quantity: 1, unitPrice: between(rng, [900, 1800], 10), vatRate: 21 }], vatDeductible: deductible },
         `Honoraires ${accountingFirm.name}`,
         30,
       );
@@ -281,7 +376,7 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
         account: capexSpec.account,
         depreciationAccount: capexSpec.depreciationAccount,
         acquisitionDate: date,
-        cost,
+        cost: deductible ? cost : cost + Math.round((cost * 21) / 100),
         years: capexSpec.years,
         priorDepreciation: 0,
       };
@@ -298,18 +393,23 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
             { label: capexSpec.label, quantity: 1, unitPrice: cost - installation, vatRate: 21 },
             { label: 'Livraison, installation et mise en service', quantity: 1, unitPrice: installation, vatRate: 21 },
           ],
-          vatDeductible: true,
+          vatDeductible: deductible,
           assetId: asset.id,
         },
         `Achat ${capexSpec.label}`,
         30,
       );
+      world.minutes.push({
+        id: 'm-capex',
+        date: addDays(date, -20),
+        meeting: 'Organe d’administration',
+        text: `Décision d’acquérir : ${capexSpec.label}, budget d’environ ${formatAmount(roundTo(cost, euros(500)))} € HTVA.`,
+      });
     }
 
     // Ventes
     if (spec.salesMode === 'counter') {
-      const lines = spec.salesMix.map((mix) => ({ label: mix.label, quantity: 1, unitPrice: Math.round(salesBase * mix.share), vatRate: mix.vatRate }));
-      const { base, vat, total } = invoiceTotals({ lines });
+      const { base, vat, total } = invoiceTotals({ lines: saleLines(salesBase) });
       addEntry({
         journal: 'VEN',
         date: isoDate(year, month, lastDay),
@@ -331,10 +431,12 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
           dueDate: addDays(date, 30),
           partyId: client.id,
           account: '700',
-          lines: [{ label: spec.salesMix[0]!.label, quantity: 1, unitPrice: amount, vatRate: spec.salesMix[0]!.vatRate }],
+          lines: saleLines(amount),
           vatDeductible: true,
+          deliveryDate: addDays(date, -rng.int(0, 2)),
         };
         invoices.push(invoice);
+        world.deliveries.push({ id: `d${++deliveryNumber}`, number: `BL-${deliveryNumber}`, date: invoice.deliveryDate!, partyId: client.id, description: spec.salesMix[0]!.label, invoiceNumber: invoice.number });
         const { base, vat, total } = invoiceTotals(invoice);
         addEntry({ journal: 'VEN', date, label: `Facture ${invoice.number} — ${client.name}`, lines: [line('400', total, 0), line('700', 0, base), line('451', 0, vat)], partyId: client.id, invoiceId: invoice.id });
         const paidOn = addDays(invoice.dueDate, rng.int(-5, 15));
@@ -344,8 +446,9 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
       }
     }
 
-    // Salaires du mois
-    const totalGross = gross * staff;
+    // Salaires du mois (personnes présentes ce mois-là)
+    const active = employees.filter((e) => e.startDate <= isoDate(year, month, lastDay));
+    const totalGross = active.reduce((s, e) => s + e.monthlyGross, 0);
     const workerOnss = Math.round((totalGross * WORKER_ONSS) / 100);
     const withholding = Math.round(((totalGross - workerOnss) * WITHHOLDING_TAX) / 100);
     const net = totalGross - workerOnss - withholding;
@@ -361,6 +464,19 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
     }
   }
 
+  // Livraisons de janvier N+1 (pour le test de séparation des exercices).
+  for (let i = 0; i < (clients.length > 0 ? 3 : 0); i++) {
+    const client = rng.pick(clients);
+    world.deliveries.push({
+      id: `d${++deliveryNumber}`,
+      number: `BL-${deliveryNumber}`,
+      date: isoDate(year + 1, 1, rng.int(3, 15)),
+      partyId: client.id,
+      description: spec.salesMix[0]!.label,
+      invoiceNumber: `${year + 1}-${String(i + 1).padStart(4, '0')}`,
+    });
+  }
+
   // ---------- TVA : déclarations des trimestres 1 à 3 ----------
   // Les montants sont calculés avant d'ajouter la moindre déclaration (celle du T1 est datée en avril).
   const vatBalance = (quarter: number, account: string) =>
@@ -370,18 +486,20 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
       .filter((l) => l.account === account)
       .reduce((s, l) => s + l.debit - l.credit, 0);
   const declarations = [1, 2, 3].map((quarter) => ({ quarter, due: -vatBalance(quarter, '451'), deductible: vatBalance(quarter, '411') }));
-  for (const { quarter, due, deductible } of declarations) {
-    const balance = due - deductible;
+  for (const { quarter, due, deductible: recoverable } of declarations) {
+    const balance = due - recoverable;
     addEntry({
       journal: 'FIN',
       date: isoDate(year, quarter * 3 + 1, 20),
       label: `TVA — déclaration du ${quarter}e trimestre`,
-      lines: [line('451', due, 0), line('411', 0, deductible), balance >= 0 ? line('550', 0, balance) : line('550', -balance, 0)],
+      lines: [line('451', due, 0), line('411', 0, recoverable), balance >= 0 ? line('550', 0, balance) : line('550', -balance, 0)],
     });
   }
 
   // ---------- Inventaire et amortissements ----------
-  const closingStock = roundTo(Math.round((openingStock * rng.int(88, 115)) / 100), euros(10));
+  const stockTarget = Math.round((openingStock * rng.int(88, 115)) / 100);
+  world.stock = stockItems(rng, spec.suppliers, stockTarget, year);
+  const closingStock = world.stock.reduce((s, item) => s + item.quantity * item.unitCost, 0);
   const stockChange = closingStock - openingStock;
   addEntry({
     journal: 'OD',
@@ -394,6 +512,70 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
     addEntry({ journal: 'OD', date: yearEnd, label: `Amortissement ${asset.label}`, lines: [line('6302', amount, 0), line(asset.depreciationAccount, 0, amount)], assetId: asset.id });
   }
 
-  entries.sort((a, b) => (a.date === b.date ? 0 : a.date < b.date ? -1 : 1));
-  return { books: { entries, invoices, assets, parties }, company: { ...company, staff }, revenue };
+  // ---------- Procès-verbaux ----------
+  world.minutes.push(
+    { id: 'm-ag', date: isoDate(year, 6, rng.int(2, 25)), meeting: 'Assemblée générale ordinaire', text: `Approbation des comptes annuels ${year - 1} et décharge à l’organe d’administration.` },
+    { id: 'm-affectation', date: isoDate(year, 6, rng.int(2, 25)), meeting: 'Assemblée générale ordinaire', text: 'Le résultat de l’exercice précédent est reporté.' },
+    { id: 'm-bail', date: isoDate(year, rng.int(2, 4), rng.int(1, 28)), meeting: 'Organe d’administration', text: 'Le bail commercial est maintenu aux mêmes conditions après indexation.' },
+    { id: 'm-personnel', date: isoDate(year, rng.int(8, 9), rng.int(1, 28)), meeting: 'Organe d’administration', text: `Point sur le personnel : ${staff} personnes, pas d’autre embauche prévue.` },
+  );
+
+  sortEntries(entries);
+  return { books: { entries, invoices, assets, parties, world }, company: { ...company, staff }, revenue };
 }
+
+/** Articles en stock dont la valeur totale approche `target`. */
+function stockItems(rng: Rng, suppliers: readonly SupplierSpec[], target: Cents, year: number): StockItem[] {
+  const products = suppliers.flatMap((s) => s.products);
+  const chosen = rng.shuffle(products).slice(0, Math.min(products.length, 6));
+  return chosen.map((p, i) => {
+    const unitCost = between(rng, p.price, 0.05);
+    return {
+      id: `st${i + 1}`,
+      label: p.label,
+      quantity: Math.max(1, Math.round(target / chosen.length / unitCost)),
+      unitCost,
+      lastMovement: isoDate(year, 12, rng.int(5, 30)),
+    };
+  });
+}
+
+/**
+ * Opérations de janvier-février N+1, déduites de la vérité au 31/12 : paiements des dettes et
+ * encaissements des créances ouvertes, cotisations et TVA du 4e trimestre.
+ */
+export function afterClosingEvents(truth: Books, company: Company, rng: Rng): void {
+  const year = company.fiscalYear;
+  const yearEnd = isoDate(year, 12, 31);
+  const events = truth.world.afterClosing;
+  let n = events.length;
+  for (const invoice of truth.invoices) {
+    // Seules les factures encore ouvertes au 31/12 sont réglées après la clôture.
+    if (truth.entries.some((e) => e.journal === 'FIN' && e.invoiceId === invoice.id)) continue;
+    // Un client en faillite ne paiera pas.
+    if (truth.parties.find((p) => p.id === invoice.partyId)?.status === 'bankrupt') continue;
+    const { total } = invoiceTotals(invoice);
+    const sale = invoice.flow === 'sale';
+    const refund = invoice.kind === 'credit-note';
+    events.push({
+      id: `pay-${invoice.id}`,
+      date: invoice.dueDate > yearEnd ? invoice.dueDate : isoDate(year + 1, 1, rng.int(5, 20)),
+      label: `${sale ? 'Encaissement' : refund ? 'Remboursement reçu' : 'Paiement'} ${invoice.number}`,
+      amount: sale || refund ? total : -total,
+      partyId: invoice.partyId,
+    });
+  }
+  const social = truth.entries.filter((e) => e.date === yearEnd && e.journal === 'OD' && e.lines.some((l) => l.account === '454'));
+  const onss = social.flatMap((e) => e.lines).filter((l) => l.account === '454').reduce((s, l) => s + l.credit, 0);
+  const tax = social.flatMap((e) => e.lines).filter((l) => l.account === '453').reduce((s, l) => s + l.credit, 0);
+  events.push(
+    { id: `ev${++n}`, date: isoDate(year + 1, 1, 15), label: 'ONSS de décembre', amount: -onss },
+    { id: `ev${++n}`, date: isoDate(year + 1, 1, 15), label: 'Précompte professionnel de décembre', amount: -tax },
+  );
+  const q4 = (account: string) =>
+    truth.entries.filter((e) => quarterOf(e.date) === 4 && e.date.startsWith(String(year))).flatMap((e) => e.lines).filter((l) => l.account === account).reduce((s, l) => s + l.debit - l.credit, 0);
+  const vat = -q4('451') - q4('411');
+  if (vat !== 0) events.push({ id: `ev${++n}`, date: isoDate(year + 1, 1, 20), label: 'TVA — déclaration du 4e trimestre', amount: -vat });
+  events.sort((a, b) => a.date.localeCompare(b.date));
+}
+

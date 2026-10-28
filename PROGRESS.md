@@ -1,6 +1,6 @@
 # Avancement — Audit Detective
 
-## Jalon en cours : J2 — Moteur de génération (terminé, en attente de validation par Gauthier)
+## Jalon en cours : J3 → J6 en autonomie (validation de Gauthier à la fin)
 
 ### J0
 - [x] Projet Vite + React + TypeScript strict, Vitest, vite-plugin-pwa
@@ -29,12 +29,23 @@
 - [x] Niveaux 1-20 jouables (niveau 1 fait main, 2-20 générés) ; chaque niveau est résolu en 100/100 par un test automatique ; niveau 7 joué dans Chromium (100/100)
 - 4 secteurs pour l'instant : boulangerie, garage, PME informatique, horeca
 
+### J3
+- [x] Moteur étendu : le « monde » du client (personnel et IBAN, registre BCE fictif, PV, courriers, livraisons, opérations de janvier-février N+1, stock détaillé, contrats)
+- [x] 10 secteurs (ajout : grossiste alimentaire, construction, e-commerce, transport, cabinet médical exempté de TVA, commerce de détail)
+- [x] Nouvelles procédures : circularisation clients, cut-off, dettes non comptabilisées, lecture des PV, contrôle de la paie, confirmation bancaire, recherche BCE, Benford (Inès, dès le niveau 25)
+- [x] 8 fraudes et erreurs classiques : vente fictive, CA reconnu trop tôt, créance douteuse non dépréciée, fournisseur fictif (IBAN du comptable), facture non comptabilisée, dépense privée du gérant, compte bancaire fictif, virements vers le compte du gérant
+- [x] Dialogues : profils (coopératif, nerveux, évasif, arrogant), le fraudeur ment, confrontation avec un indice du carnet → aveu épinglable
+- [x] Cabinet : grades (Stagiaire → Réviseur), promotions annoncées par Hélène, paris de Maxime (résultat au débrief), Inès et son outil Benford
+- [x] Niveaux 21-40 ; accueil en chapitres repliables ; niveau 21 joué dans Chromium avec confrontation (97/100)
+
 ### Décisions
 - Dépôt `vision-audit` (et non `audit-detective`) : l'app est publiée sous `/vision-audit/`.
 - Thème clair/sombre automatique selon le système. Le réglage manuel et la taille de police viendront avec les écrans de jeu.
 - Icône : loupe sur un dossier, bleu nuit et ambre (`public/favicon.svg`, PNG générés par `npm run icons`).
 - Toutes les anomalies générées sont placées au 4e trimestre : la TVA du T4 n'est pas encore déclarée au 31/12, donc corriger les livres suffit à retrouver la vérité (les déclarations T1-T3 déjà payées ne sont jamais touchées).
-- Procédure ajoutée par rapport au §7 : « Revue des immobilisations » (1 h), nécessaire pour les erreurs d'amortissement.
+- Procédures ajoutées par rapport au §7 : « Revue des immobilisations » (1 h) et « Lecture des PV et du courrier » (inclut les courriers d'avocat ou de curateur).
+- Fraudes avec sortie d'argent (fournisseur fictif, virements, dépense privée) : la « vérité » comptabilise une créance sur la personne (416).
+- Questions d'entretien générales pour les fraudes (le joueur doit soupçonner), ciblées pour les erreurs du chapitre Stagiaire.
 - Budget des niveaux générés : max(chemin optimal ; 2,5 h) × marge de difficulté (×2 → ×1,2), arrondi à la demi-heure.
 - Seuil de signification : 0,5 à 1 % du chiffre d'affaires ; écarté de ±20 % du montant de l'anomalie pour éviter les cas ambigus.
 - Opinion : dès la difficulté 3, le client peut refuser de corriger (35 %) → avec réserve si l'anomalie est significative, sans réserve sinon.

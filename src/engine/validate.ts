@@ -40,6 +40,11 @@ export function validateLevel(level: Level): string[] {
   if (level.briefing.body.length > 6) fail('briefing trop long (plus de 6 lignes)');
   for (const topic of level.characters.flatMap((c) => c.topics)) {
     if (topic.answer.length < 1 || topic.answer.length > 6) fail(`réplique hors format (${topic.id})`);
+    if (topic.lie) {
+      if (topic.lie.contradictedBy.length === 0) fail(`mensonge impossible à contredire (${topic.id})`);
+      for (const clue of topic.lie.contradictedBy) if (!describeClue(level, clue)) fail(`preuve de confrontation introuvable ${clue}`);
+      if (topic.lie.confession.length < 1 || topic.lie.confession.length > 6) fail(`aveu hors format (${topic.id})`);
+    }
   }
   return errors;
 }
@@ -68,8 +73,10 @@ export function validateCase({ level, truth, books, injections }: GeneratedCase)
     if (net('411') !== sign * (invoice.vatDeductible ? vat : 0) || net('440') !== -sign * total) fail(`TVA incohérente sur ${invoice.number}`);
   }
 
-  // Banque : les anomalies de ce catalogue ne touchent jamais le 550, qui reste égal au relevé.
-  if (accountBalance(truth.entries, '550') !== accountBalance(books.entries, '550')) fail('le 550 ne correspond plus au relevé bancaire');
+  // Banque : les anomalies peuvent mal imputer un paiement, jamais changer le solde réel du compte courant 550.
+  const exact550 = (b: typeof truth) => trialBalance(b.entries).get('550');
+  const net550 = (b: typeof truth) => (exact550(b)?.debit ?? 0) - (exact550(b)?.credit ?? 0);
+  if (net550(truth) !== net550(books)) fail('le 550 ne correspond plus au relevé bancaire');
 
   // Correction : livres + écritures de correction = vérité, compte par compte.
   const corrected = trialBalance([...books.entries, ...injections.map((i, n) => ({ id: `corr-${n}`, journal: 'OD' as const, date: '', label: '', lines: i.correction }))]);

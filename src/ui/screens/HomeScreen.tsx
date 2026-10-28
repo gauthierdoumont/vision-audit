@@ -1,3 +1,4 @@
+import { GRADES } from '../../content/firm';
 import { LEVEL_SUMMARIES } from '../../content/levels';
 import type { GameState } from '../../game/state';
 import type { LevelResult } from '../../storage/db';
@@ -22,6 +23,9 @@ type Props = {
 
 export function HomeScreen({ savedGame, results, onStart, onNavigate }: Props) {
   const savedLevel = savedGame && LEVEL_SUMMARIES.find((l) => l.id === savedGame.levelId);
+  const starsOf = (id: string) => results.find((r) => r.levelId === id)?.stars;
+  // Déblocage séquentiel : une étoile au niveau précédent suffit.
+  const unlocked = (number: number) => number === 1 || (starsOf(LEVEL_SUMMARIES[number - 2]!.id) ?? 0) >= 1;
 
   return (
     <section className="screen home">
@@ -38,27 +42,42 @@ export function HomeScreen({ savedGame, results, onStart, onNavigate }: Props) {
       )}
 
       <h2 className="section-title">Campagne</h2>
-      <nav className="menu" aria-label="Niveaux de la campagne">
-        {LEVEL_SUMMARIES.map((level, index) => {
-          const result = results.find((r) => r.levelId === level.id);
-          const previous = LEVEL_SUMMARIES[index - 1];
-          const unlocked = !previous || (results.find((r) => r.levelId === previous.id)?.stars ?? 0) >= 1;
-          return (
-            <button key={level.id} type="button" className="menu-item" disabled={!unlocked} onClick={() => onStart(level.id, false)}>
-              <span className="menu-label">
-                {level.number}. {level.title}
+      {GRADES.map((grade, g) => {
+        const next = GRADES[g + 1]?.from ?? Infinity;
+        const levels = LEVEL_SUMMARIES.filter((l) => l.number >= grade.from && l.number < next);
+        if (levels.length === 0) return null;
+        const stars = levels.reduce((s, l) => s + (starsOf(l.id) ?? 0), 0);
+        const current = levels.some((l) => unlocked(l.number) && !starsOf(l.id));
+        return (
+          <details key={grade.label} className="chapter" open={current || undefined}>
+            <summary>
+              <span>{grade.label}</span>
+              <span className="muted">
+                Niveaux {levels[0]!.number}-{levels.at(-1)!.number} · {stars}/{levels.length * 3} ★
               </span>
-              <span className="menu-detail">
-                {level.clientName} · difficulté {level.difficulty}
-              </span>
-              <span className="badge stars-badge" aria-label={`${result?.stars ?? 0} étoile(s)`}>
-                {'★'.repeat(result?.stars ?? 0)}
-                {'☆'.repeat(3 - (result?.stars ?? 0))}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+            </summary>
+            <nav className="menu" aria-label={`Niveaux ${grade.label}`}>
+              {levels.map((level) => {
+                const earned = starsOf(level.id) ?? 0;
+                return (
+                  <button key={level.id} type="button" className="menu-item" disabled={!unlocked(level.number)} onClick={() => onStart(level.id, false)}>
+                    <span className="menu-label">
+                      {level.number}. {level.title}
+                    </span>
+                    <span className="menu-detail">
+                      {level.clientName} · difficulté {level.difficulty}
+                    </span>
+                    <span className="badge stars-badge" aria-label={`${earned} étoile(s)`}>
+                      {'★'.repeat(earned)}
+                      {'☆'.repeat(3 - earned)}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+          </details>
+        );
+      })}
 
       <h2 className="section-title">Bientôt</h2>
       <nav className="menu" aria-label="Autres modes de jeu">

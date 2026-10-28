@@ -1,9 +1,10 @@
 // Invariants du moteur de génération (cahier des charges §8). Audit Detective — Gauthier Doumont.
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { LEVEL_SUMMARIES, getLevel } from '../src/content/levels';
 import { SECTOR_IDS } from '../src/content/sectors';
-import { ANOMALY_TYPES } from '../src/engine/anomalies';
+import { ANOMALY_CATALOGUE } from '../src/engine/anomalies';
+import { SECTORS } from '../src/content/sectors';
 import { generateCase, type LevelSpec } from '../src/engine/generate';
 import { invoiceTotals } from '../src/engine/invoices';
 import { formatAmount, vatOf } from '../src/engine/money';
@@ -52,17 +53,18 @@ describe('montants', () => {
 
 describe('Math.random interdit dans le moteur', () => {
   it('aucun fichier de src/engine ne l’utilise', () => {
-    const dir = join(__dirname, '../src/engine');
-    for (const file of readdirSync(dir)) {
-      expect(readFileSync(join(dir, file), 'utf8'), file).not.toMatch(/Math\.random\s*\(/);
+    const walk = (dir: string): string[] =>
+      readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? walk(join(dir, f)) : [join(dir, f)]));
+    for (const file of walk(join(__dirname, '../src/engine'))) {
+      expect(readFileSync(file, 'utf8'), file).not.toMatch(/Math\.random\s*\(/);
     }
   });
 });
 
 describe('cas générés : tous secteurs × toutes anomalies', () => {
   const specs: LevelSpec[] = SECTOR_IDS.flatMap((sector, s) =>
-    ANOMALY_TYPES.flatMap((type, t) =>
-      [1, 4, 8].map((difficulty, d) => ({ number: 100 + s * 100 + t * 10 + d, seed: `test-${sector}-${type}-${d}`, difficulty, sector, anomalies: [type] })),
+    ANOMALY_CATALOGUE.filter((a) => a.appliesTo(SECTORS[sector])).flatMap((a, t) =>
+      [1, 4, 8].map((difficulty, d) => ({ number: 100 + s * 100 + t * 10 + d, seed: `test-${sector}-${a.type}-${d}`, difficulty, sector, anomalies: [a.type] })),
     ),
   );
 
@@ -85,8 +87,8 @@ describe('cas générés : tous secteurs × toutes anomalies', () => {
 });
 
 describe('campagne', () => {
-  it('20 niveaux, numérotés de 1 à 20', () => {
-    expect(LEVEL_SUMMARIES.map((l) => l.number)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+  it('niveaux numérotés sans trou à partir de 1', () => {
+    expect(LEVEL_SUMMARIES.map((l) => l.number)).toEqual(Array.from({ length: LEVEL_SUMMARIES.length }, (_, i) => i + 1));
   });
 
   it('les résumés de l’accueil correspondent aux niveaux générés', () => {

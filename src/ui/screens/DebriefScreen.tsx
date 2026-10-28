@@ -1,4 +1,5 @@
 // Débrief : score, étoiles et explication de chaque anomalie. Audit Detective — Gauthier Doumont.
+import { MAXIME_RESULTS } from '../../content/firm';
 import { ASSERTION_LABELS, OPINION_LABELS, QUALIFICATION_LABELS } from '../../content/labels';
 import type { Level } from '../../content/types';
 import { describeClue } from '../../game/clues';
@@ -30,6 +31,12 @@ export function DebriefScreen({ level, state, result, onReplay, onHome }: Props)
         <div><dt>Justification</dt><dd>{Math.round(result.justification)} / 20</dd></div>
         <div><dt>Pénalités</dt><dd>−{result.penalties}</dd></div>
       </dl>
+
+      {level.firm?.maximeBet && (
+        <p className="firm-notes">
+          {result.anomalies.every((r) => r.account && r.amount) && state.hoursUsed <= level.firm.maximeBet.hours ? MAXIME_RESULTS.won : MAXIME_RESULTS.lost}
+        </p>
+      )}
 
       {result.anomalies.map((r) => (
         <article key={r.anomaly.id} className="card static">
