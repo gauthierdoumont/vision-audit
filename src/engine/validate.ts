@@ -4,7 +4,7 @@ import { findAccount } from '../content/pcmn';
 import type { Level } from '../content/types';
 import { describeClue } from '../game/clues';
 import { isBalanced } from '../game/scoring';
-import { accountBalance, isEntryBalanced, trialBalance } from './balance';
+import { accountBalance, isEntryBalanced, partyBalance, trialBalance } from './balance';
 import { budgetFactor, type GeneratedCase } from './generate';
 import { invoiceTotals } from './invoices';
 
@@ -81,6 +81,16 @@ export function validateCase({ level, truth, books, injections }: GeneratedCase)
   for (const injection of injections) {
     if (!isEntryBalanced(injection.correction)) fail(`correction déséquilibrée (${injection.type})`);
     if (injection.accounts.some((a) => a.amount <= 0)) fail(`montant d’anomalie nul (${injection.type})`);
+  }
+  return errors;
+}
+
+/** Chaque tiers a un solde cohérent : la somme des soldes par tiers égale le solde du compte collectif. */
+export function validatePartyBalances({ level, truth }: GeneratedCase): string[] {
+  const errors: string[] = [];
+  for (const account of ['440', '400']) {
+    const parties = truth.parties.reduce((s, p) => s + partyBalance(truth.entries, account, p.id), 0);
+    if (parties !== accountBalance(truth.entries, account)) errors.push(`${level.id} : soldes par tiers du ${account} incohérents`);
   }
   return errors;
 }

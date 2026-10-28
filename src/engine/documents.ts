@@ -202,9 +202,7 @@ function confirmationDocument({ company, truth, books }: Context, partyId: strin
       const what =
         e.journal === 'ACH'
           ? `${invoice?.kind === 'credit-note' ? 'Note de crédit' : 'Facture'} ${invoice?.number ?? ''}`
-          : value < 0
-            ? 'Paiement reçu'
-            : 'Remboursement effectué';
+          : `${value < 0 ? 'Paiement reçu' : 'Remboursement effectué'}${invoice ? ` — ${invoice.number}` : ''}`;
       return { id: `c-${e.id}`, cells: [formatDate(e.date), what, amount(value)] };
     });
   return {
@@ -215,8 +213,8 @@ function confirmationDocument({ company, truth, books }: Context, partyId: strin
     columns: ['Date', 'Opération', 'Montant'],
     lines: [
       ...lines,
-      { id: 'solde', cells: ['31/12', `Solde dû par ${company.name} selon nos livres`, amount(ownView)] },
-      { id: 'ecart', cells: ['', `Solde selon la comptabilité du client (note du réviseur) — écart ${amount(clientView - ownView)}`, amount(clientView)] },
+      { id: 'solde', cells: ['31/12', 'Solde dû selon nos livres', amount(ownView)] },
+      { id: 'ecart', cells: ['', `Note du réviseur : solde chez le client, écart de ${amount(clientView - ownView)}`, amount(clientView)] },
     ],
     footer: ['Opérations du 4e trimestre. Montants positifs : facturé ; négatifs : payé ou crédité.'],
   };
@@ -244,7 +242,7 @@ function assetDocument({ company, books }: Context): GameDocument {
 
 export function buildDocuments(context: Context): DocumentSet {
   const { books, confirmedSuppliers } = context;
-  const q4Invoices = books.invoices.filter((i) => i.flow === 'purchase' && isQ4(i));
+  const q4Invoices = books.invoices.filter((i) => i.flow === 'purchase' && isQ4(i)).sort((a, b) => a.date.localeCompare(b.date));
   const invoices = q4Invoices.map((invoice) => invoiceDocument(context, invoice));
   const confirmations = confirmedSuppliers.map((partyId) => confirmationDocument(context, partyId));
   const documents = [

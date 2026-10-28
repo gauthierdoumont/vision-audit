@@ -22,7 +22,8 @@ export type PartyKind = 'supplier' | 'client';
 
 export type Party = { id: string; kind: PartyKind; name: string; address: string };
 
-export type EntryLine = { account: string; debit: Cents; credit: Cents };
+/** `partyId` sur une ligne : utile quand une écriture touche plusieurs tiers (ex. : bilan d'ouverture). */
+export type EntryLine = { account: string; debit: Cents; credit: Cents; partyId?: string };
 
 export type JournalCode = 'ACH' | 'VEN' | 'FIN' | 'OD';
 

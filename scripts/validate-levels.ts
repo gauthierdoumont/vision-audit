@@ -3,7 +3,7 @@
 import { CAMPAIGN_SPECS } from '../src/content/levels/campaign';
 import { level001 } from '../src/content/levels/level-001';
 import { generateCase } from '../src/engine/generate';
-import { validateCase, validateLevel } from '../src/engine/validate';
+import { validateCase, validateLevel, validatePartyBalances } from '../src/engine/validate';
 
 const errors: string[] = [...validateLevel(level001)];
 console.log(`Niveau  1 · ${level001.title} · ${level001.client.name}`);
@@ -11,7 +11,7 @@ console.log(`Niveau  1 · ${level001.title} · ${level001.client.name}`);
 for (const spec of CAMPAIGN_SPECS) {
   const generated = generateCase(spec);
   const { level } = generated;
-  errors.push(...validateLevel(level), ...validateCase(generated));
+  errors.push(...validateLevel(level), ...validateCase(generated), ...validatePartyBalances(generated));
   const again = JSON.stringify(generateCase(spec).level);
   if (again !== JSON.stringify(level)) errors.push(`${level.id} : non déterministe (même graine, cas différent)`);
   console.log(

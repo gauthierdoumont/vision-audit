@@ -29,5 +29,8 @@ export function accountBalance(entries: Entry[], account: string, filter?: (entr
 }
 
 export function partyBalance(entries: Entry[], account: string, partyId: string): Cents {
-  return accountBalance(entries, account, (e) => e.partyId === partyId);
+  return entries
+    .flatMap((e) => e.lines.map((l) => ({ ...l, partyId: l.partyId ?? e.partyId })))
+    .filter((l) => l.partyId === partyId && l.account.startsWith(account))
+    .reduce((s, l) => s + l.debit - l.credit, 0);
 }

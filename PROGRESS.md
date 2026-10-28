@@ -1,6 +1,6 @@
 # Avancement — Audit Detective
 
-## Jalon en cours : J1 — Niveau vertical jouable (terminé, en attente de validation par Gauthier)
+## Jalon en cours : J2 — Moteur de génération (terminé, en attente de validation par Gauthier)
 
 ### J0
 - [x] Projet Vite + React + TypeScript strict, Vitest, vite-plugin-pwa
@@ -18,20 +18,44 @@
 - [x] Sauvegarde automatique de la partie en cours et du meilleur résultat (IndexedDB)
 - [x] Partie complète jouée dans Chromium (390 px, clair et sombre) : reprise après fermeture OK, 98/100 et 3 étoiles, aucune erreur console
 
+### J2
+- [x] RNG à graine (`src/engine/rng.ts`, mulberry32 + hachage cyrb53), sans `Math.random` (testé)
+- [x] Génération d'entreprise et d'un exercice complet (`company.ts`, `ledger.ts`) : achats, notes de crédit, frais généraux, repas d'affaires, investissement, ventes (comptoir ou factures), salaires, TVA trimestrielle, inventaire, amortissements
+- [x] Grand livre, balance (`balance.ts`) et documents (`documents.ts`) : balance générale, journal des achats T4, balance fournisseurs, factures, revue analytique N/N-1, relevés bancaires T4, confirmations fournisseurs, tableau des immobilisations
+- [x] Les 6 erreurs simples (`anomalies.ts`) : facture en double, mauvais taux de TVA, TVA déduite sur restaurant, inversion débit/crédit (note de crédit), amortissement oublié ou mauvaise durée, investissement passé en charges
+- [x] Sondage de factures : le joueur choisit son échantillon (1 h par lot de 5)
+- [x] Invariants testés (`validate.ts`) : écritures et balance équilibrées, TVA cohérente, 550 = relevé, soldes par tiers, ≥ 2 traces, détectable dans le budget, chemin optimal × marge, déterminisme, et surtout « livres + correction = vérité »
+- [x] `npm run validate-levels` : 20 niveaux valides
+- [x] Niveaux 1-20 jouables (niveau 1 fait main, 2-20 générés) ; chaque niveau est résolu en 100/100 par un test automatique ; niveau 7 joué dans Chromium (100/100)
+- 4 secteurs pour l'instant : boulangerie, garage, PME informatique, horeca
+
 ### Décisions
 - Dépôt `vision-audit` (et non `audit-detective`) : l'app est publiée sous `/vision-audit/`.
 - Thème clair/sombre automatique selon le système. Le réglage manuel et la taille de police viendront avec les écrans de jeu.
 - Icône : loupe sur un dossier, bleu nuit et ambre (`public/favicon.svg`, PNG générés par `npm run icons`).
-- Le dossier `engine` sera créé en J2 (génération procédurale).
+- Toutes les anomalies générées sont placées au 4e trimestre : la TVA du T4 n'est pas encore déclarée au 31/12, donc corriger les livres suffit à retrouver la vérité (les déclarations T1-T3 déjà payées ne sont jamais touchées).
+- Procédure ajoutée par rapport au §7 : « Revue des immobilisations » (1 h), nécessaire pour les erreurs d'amortissement.
+- Budget des niveaux générés : max(chemin optimal ; 2,5 h) × marge de difficulté (×2 → ×1,2), arrondi à la demi-heure.
+- Seuil de signification : 0,5 à 1 % du chiffre d'affaires ; écarté de ±20 % du montant de l'anomalie pour éviter les cas ambigus.
+- Opinion : dès la difficulté 3, le client peut refuser de corriger (35 %) → avec réserve si l'anomalie est significative, sans réserve sinon.
+- Compte saisi accepté s'il est le compte attendu ou un compte parent d'au moins 2 chiffres (ex. 23 pour 2300).
+- Assertions retenues : existence (double facture, inversion, TVA restaurant), évaluation (taux de TVA, amortissement), présentation (investissement en charges).
 - Niveau 1 : réponse attendue = compte 440 (3 392 €, TVAC) ou 604 (3 200 €, HTVA) ; assertion existence ; erreur ; écriture D 440 3 392 / C 604 3 200 / C 411 192 ; opinion sans réserve (client qui corrige), pas de paragraphe continuité.
 - Opinion intégrée dès J1 en version simple (nécessaire pour la 1re étoile).
 - Score : efficience 20/20 jusqu'au chemin optimal, 10/20 au budget, 0 au-delà. Pénalités : faux positif −15, indice −10, mauvaise opinion −15. Valeurs à équilibrer en J6.
 - Les heures peuvent dépasser le budget (barre rouge, efficience 0, pas de 3e étoile) plutôt que bloquer le joueur.
 
 ### Points `À VÉRIFIER`
-- Aucun. Règles utilisées : TVA 6 % sur la farine, le sucre et le lait (denrées alimentaires), 21 % sur le nettoyage, les emballages et l'entretien du four. Gauthier peut les valider.
+- Taux horeca : 12 % sur les repas servis sur place, 21 % sur les boissons (`src/content/sectors.ts`).
+- Durées d'amortissement « usuelles » par type de bien (`sectors.ts`) et prorata temporis au mois.
+- Simplifications de paie (`ledger.ts`) : ONSS travailleur 13,07 %, cotisations patronales ~25 %, précompte forfaitaire 22 %.
+- Seuil de signification à 0,5-1 % du chiffre d'affaires (`generate.ts`).
+- Compte 110 « Apport disponible » pour le capital des SRL (CSA), 100 pour les SA (`pcmn.ts`, `ledger.ts`).
+- Choix des assertions par anomalie (voir Décisions).
+- Pas d'impôt des sociétés comptabilisé dans les cas générés (simplification).
+- Règles déjà utilisées en J1 : TVA 6 % sur la farine, le sucre et le lait ; 21 % sur le nettoyage, les emballages, l'entretien ; TVA non déductible sur les frais de restaurant.
 
 ### Prochaine étape
-J2 : moteur de génération (RNG avec seed, entreprise, écritures, grand livre, balance, documents), les 6 erreurs simples, tests d'invariants + `npm run validate-levels`, niveaux 1-20.
+J3 : système de dialogues (profils, mensonges détectables), personnages récurrents du cabinet, fraudes classiques ventes / achats / trésorerie, niveaux 21-40.
 
 <sub>Projet créé par Gauthier Doumont.</sub>

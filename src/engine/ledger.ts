@@ -167,8 +167,8 @@ export function generateBooks(rng: Rng, company: Company, difficulty: number): L
   // Dettes fournisseurs et créances clients de l'exercice précédent, réglées en janvier.
   const openingPayables = suppliers.map((s) => ({ party: s.party, amount: between(rng, [800, 4000], 0.01) }));
   const openingReceivables = clients.map((c) => ({ party: c, amount: between(rng, [1500, 9000], 0.01) }));
-  for (const p of openingPayables) opening.push(line('440', 0, p.amount));
-  for (const r of openingReceivables) opening.push(line('400', r.amount, 0));
+  for (const p of openingPayables) opening.push({ ...line('440', 0, p.amount), partyId: p.party.id });
+  for (const r of openingReceivables) opening.push({ ...line('400', r.amount, 0), partyId: r.party.id });
   opening.push(line(capitalAccount, 0, capital));
   const openingDiff = opening.reduce((s, l) => s + l.debit - l.credit, 0);
   opening.push(openingDiff >= 0 ? line('140', 0, openingDiff) : line('141', -openingDiff, 0));

@@ -91,7 +91,7 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
           `${managerName} veut des comptes contrôlés pour rassurer un futur associé.`,
           'Mission de contrôle volontaire : la gérance veut un avis indépendant sur ses comptes.',
         ]),
-        `Comptable : ${accountantName}. Seuil de signification : ${formatAmount(materiality)} €. Budget : ${String(budgetHours).replace('.', ',')} h.`,
+        `Comptable : ${accountantName}. Seuil de signification : ${formatAmount(materiality).replace(/,00$/, '')} €. Budget : ${String(budgetHours).replace('.', ',')} h.`,
         clientCorrects
           ? 'La gérance s’est engagée à corriger tout ce qu’on trouvera.'
           : `Attention : ${managerName} refuse d’avance de modifier des comptes déjà arrêtés.`,

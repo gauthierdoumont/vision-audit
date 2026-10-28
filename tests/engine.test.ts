@@ -8,7 +8,9 @@ import { generateCase, type LevelSpec } from '../src/engine/generate';
 import { invoiceTotals } from '../src/engine/invoices';
 import { formatAmount, vatOf } from '../src/engine/money';
 import { createRng } from '../src/engine/rng';
-import { validateCase, validateLevel } from '../src/engine/validate';
+import { validateCase, validateLevel, validatePartyBalances } from '../src/engine/validate';
+import { scoreGame } from '../src/game/scoring';
+import { createGame, gameReducer, type GameAction } from '../src/game/state';
 
 describe('rng', () => {
   it('même graine, même suite ; graines différentes, suites différentes', () => {
@@ -68,6 +70,7 @@ describe('cas générés : tous secteurs × toutes anomalies', () => {
     const generated = generateCase(spec);
     expect(validateLevel(generated.level)).toEqual([]);
     expect(validateCase(generated)).toEqual([]);
+    expect(validatePartyBalances(generated)).toEqual([]);
   });
 
   it('même graine : cas identique (déterminisme)', () => {
@@ -92,5 +95,38 @@ describe('campagne', () => {
       expect(level.title).toBe(summary.title);
       expect(level.client.name).toBe(summary.clientName);
     }
+  });
+
+  it.each(LEVEL_SUMMARIES.map((s) => [s.number, s.id] as const))('niveau %i : jouable parfaitement en 3 étoiles', (_, id) => {
+    const level = getLevel(id)!;
+    const actions: GameAction[] = [{ type: 'read-briefing' }];
+    level.anomalies.forEach((anomaly, i) => {
+      // Procédure la moins chère qui révèle une trace documentaire.
+      const traceDocs = anomaly.traces.map((t) => t.split('#')[0]!);
+      const options = level.procedures.flatMap((p) => {
+        const pooled = p.sampling?.pool.find((d) => traceDocs.includes(d));
+        if (pooled) return [{ hours: p.hours, action: { type: 'sample', procedureId: p.id, documentIds: [pooled] } as GameAction }];
+        return p.reveals.some((d) => traceDocs.includes(d)) ? [{ hours: p.hours, action: { type: 'run-procedure', procedureId: p.id } as GameAction }] : [];
+      });
+      actions.push(options.sort((a, b) => a.hours - b.hours)[0]!.action);
+      actions.push({ type: 'toggle-pin', clueId: anomaly.traces[0]! });
+      actions.push({
+        type: 'add-finding',
+        finding: {
+          id: `f${i}`,
+          account: anomaly.accounts[0]!.account,
+          amount: anomaly.accounts[0]!.amount,
+          assertion: anomaly.assertion,
+          qualification: anomaly.qualification,
+          correction: anomaly.correction,
+          clues: [anomaly.traces[0]!],
+        },
+      });
+    });
+    actions.push({ type: 'set-opinion', opinion: level.expectedOpinion.opinion }, { type: 'set-continuity', continuity: level.expectedOpinion.continuity });
+    const state = actions.reduce((s, a) => gameReducer(level, s, a), createGame(level));
+    const result = scoreGame(level, state);
+    expect(result.stars).toBe(3);
+    expect(result.total).toBe(100);
   });
 });

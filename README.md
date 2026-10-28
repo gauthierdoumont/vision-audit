@@ -14,6 +14,7 @@ Application web installable (PWA), 100 % hors ligne.
 | `npm run dev` | Lance l'app en local (http://localhost:5173/vision-audit/) |
 | `npm test` | Lance les tests |
 | `npm run build` | Vérifie les types et construit l'app dans `dist/` |
+| `npm run validate-levels` | Génère les niveaux de la campagne et vérifie leurs invariants |
 | `npm run preview` | Sert la version construite (pour tester le hors ligne) |
 | `npm run icons` | Régénère les icônes PNG depuis `public/favicon.svg` (nécessite Playwright) |
 

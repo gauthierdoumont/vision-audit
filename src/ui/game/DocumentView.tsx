@@ -15,6 +15,7 @@ export function DocumentView({ document, pins, onTogglePin }: Props) {
           ))}
         </div>
       )}
+      {(document.columns?.length ?? 0) > 4 && <p className="scroll-hint">↔ Fais glisser le tableau pour voir toutes les colonnes.</p>}
       <div className="doc-table-wrap">
         <table className="doc-table">
           {document.columns && (
