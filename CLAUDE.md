@@ -291,40 +291,40 @@ Chaque entrée du catalogue contient : `id`, nom, cycle, assertion(s), erreur ou
 Avance **un jalon à la fois**. Un jalon n'est terminé que si **tous ses critères sont remplis**.
 
 ### J0 — Mise en place
-- [ ] Projet Vite + React + TypeScript strict, Vitest, vite-plugin-pwa
-- [ ] Déploiement GitHub Pages via GitHub Actions (dépôt `vision-audit`)
-- [ ] Écran d'accueil + À propos ; l'app s'installe sur téléphone et fonctionne hors ligne
+- [x] Projet Vite + React + TypeScript strict, Vitest, vite-plugin-pwa
+- [x] Déploiement GitHub Pages via GitHub Actions (dépôt `vision-audit` ; activer Pages : Settings → Pages → GitHub Actions)
+- [x] Écran d'accueil + À propos ; fonctionne hors ligne (installation sur appareil réel : à tester par Gauthier)
 
 ### J1 — Niveau vertical jouable (fait main)
-- [ ] 1 niveau écrit à la main : briefing narratif, 6 documents, 3 procédures, 1 entretien, 1 anomalie (facture d'achat en double)
-- [ ] Carnet d'indices, conclusion avec écriture de correction, score, débrief
-- [ ] Sauvegarde de la partie en cours
+- [x] 1 niveau écrit à la main : briefing narratif, 6 documents, 3 procédures, 1 entretien, 1 anomalie (facture d'achat en double)
+- [x] Carnet d'indices, conclusion avec écriture de correction, score, débrief
+- [x] Sauvegarde de la partie en cours
 
 ### J2 — Moteur de génération
-- [ ] RNG avec seed, génération d'entreprise, écritures, grand livre, balance, documents
-- [ ] Les 6 erreurs simples du catalogue
-- [ ] Tests des invariants (§8) + script `npm run validate-levels`
-- [ ] Niveaux 1-20 générés et jouables
+- [x] RNG avec seed, génération d'entreprise, écritures, grand livre, balance, documents
+- [x] Les 6 erreurs simples du catalogue
+- [x] Tests des invariants (§8) + script `npm run validate-levels`
+- [x] Niveaux 1-20 générés et jouables
 
 ### J3 — Narration et entretiens
-- [ ] Système de dialogues avec profils de personnages et mensonges détectables
-- [ ] Personnages récurrents du cabinet, briefings
-- [ ] Fraudes classiques ventes / achats / trésorerie ; niveaux 21-40
+- [x] Système de dialogues avec profils de personnages et mensonges détectables
+- [x] Personnages récurrents du cabinet, briefings
+- [x] Fraudes classiques ventes / achats / trésorerie ; niveaux 21-40
 
 ### J4 — Format moyen et long
-- [ ] Fausses pistes, anomalies multiples, stocks, immobilisations, personnel
-- [ ] Choix de l'opinion ; niveaux 41-80
-- [ ] Parties liées et registre BCE fictif
+- [x] Fausses pistes, anomalies multiples, stocks, immobilisations, personnel
+- [x] Choix de l'opinion ; niveaux 41-80
+- [x] Parties liées et registre BCE fictif
 
 ### J5 — Cas réels et modes
-- [ ] Niveaux 81-100 et fil rouge Orion Trading
-- [ ] Partie rapide, Grand dossier, Défi du jour, Mode infini
-- [ ] Statistiques et écran « Points faibles »
+- [x] Niveaux 81-100 et fil rouge Orion Trading
+- [x] Partie rapide, Grand dossier, Défi du jour, Mode infini
+- [x] Statistiques et écran « Points faibles »
 
 ### J6 — Finitions
-- [ ] Équilibrage des coûts et budgets
-- [ ] Accessibilité, performance, polish visuel
-- [ ] Relecture du contenu par Gauthier (tous les `À VÉRIFIER` levés)
+- [x] Équilibrage des coûts et budgets
+- [x] Accessibilité, performance, polish visuel
+- [ ] Relecture du contenu par Gauthier (tous les `À VÉRIFIER` levés) — liste dans `PROGRESS.md`
 
 ---
 

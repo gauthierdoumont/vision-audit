@@ -112,7 +112,7 @@ export const ANOMALY_TEXTS: Record<AnomalyType, AnomalyText> = {
     title: (p) => `${p.wrongYears ? 'Amortissement calculé sur une mauvaise durée' : 'Amortissement oublié'} : « ${p.asset} »`,
     explanation: (p, variant) => [
       variant === 'wrong-duration'
-        ? `« ${p.asset} » est amorti sur ${p.wrongYears} ans au lieu de ${p.years} ans (durée usuelle, À VÉRIFIER). Dotation actée : ${p.booked} € au lieu de ${p.truth} €.`
+        ? `« ${p.asset} » est amorti sur ${p.wrongYears} ans au lieu de ${p.years} ans (durée usuelle généralement admise). Dotation actée : ${p.booked} € au lieu de ${p.truth} €.`
         : `La dotation de l’exercice pour « ${p.asset} » (${p.truth} €) figure au tableau des immobilisations mais n’a jamais été comptabilisée.`,
       `Les amortissements (6302) sont sous-évalués de ${p.diff} €, l’actif et le résultat sont surévalués d’autant.`,
       'Assertion touchée : l’évaluation. L’immobilisation est comptée à une valeur trop élevée.',
@@ -134,7 +134,7 @@ export const ANOMALY_TEXTS: Record<AnomalyType, AnomalyText> = {
     title: (p) => `« ${p.asset} » (${p.cost} €) passé en charges au lieu d’être immobilisé`,
     explanation: (p) => [
       `La facture ${p.number} (${p.supplier}) concerne l’achat d’un équipement durable : « ${p.asset} ». Elle a été imputée en 611 (entretien).`,
-      `Il fallait l’activer en ${p.account} pour ${p.cost} € et l’amortir sur ${p.years} ans, prorata ${p.months} mois : ${p.depreciation} € de dotation.`,
+      `Il fallait l’activer en ${p.account} pour ${p.cost} € et l’amortir sur ${p.years} ans, prorata temporis ${p.days} jours sur ${p.daysInYear} : ${p.depreciation} € de dotation.`,
       `Correction : activer l’actif, sortir la charge du 611, et acter l’amortissement (6302 / ${p.depreciationAccount}).`,
       'Assertion touchée : la présentation (classification). C’est une erreur d’imputation.',
     ],
@@ -407,7 +407,7 @@ export const ANOMALY_TEXTS: Record<AnomalyType, AnomalyText> = {
     title: (p) => `Transactions avec ${p.supplier}, dirigée par ${p.manager}, non mentionnées`,
     explanation: (p) => [
       `${p.supplier} est dirigée par ${p.manager} (registre BCE). Le contrat-cadre, signé par la même personne pour les deux sociétés, fixe des prix bien au-dessus du marché.`,
-      `Ces transactions (${p.volume} € HTVA en ${p.year}) ne sont pas conclues aux conditions du marché : elles doivent être mentionnées dans l’annexe (À VÉRIFIER : seuils et schéma applicables).`,
+      `Ces transactions (${p.volume} € HTVA en ${p.year}) ne sont pas conclues aux conditions du marché. Les sociétés qui dépassent les critères de taille doivent les mentionner dans l’annexe ; pour une petite société, l’obligation reste À VÉRIFIER selon le schéma utilisé.`,
       'Pas d’écriture à passer : c’est une anomalie de présentation (information). En droit des sociétés, la procédure de conflit d’intérêts aurait aussi dû être suivie.',
       `C’est une fraude : ${p.manager} tire profit des deux côtés de la transaction.`,
     ],

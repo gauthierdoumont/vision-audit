@@ -132,3 +132,14 @@ describe('campagne', () => {
     expect(result.total).toBe(100);
   });
 });
+
+describe('amortissement prorata temporis', () => {
+  it('compte les jours d’utilisation la première année (exemple : 1er avril, 275 jours sur 365)', async () => {
+    const { daysUsed, depreciationFor } = await import('../src/engine/ledger');
+    expect(daysUsed('2025-04-01')).toBe(275);
+    expect(daysUsed('2025-12-31')).toBe(1);
+    const asset = { id: 'a', label: 'Machine', account: '2300', depreciationAccount: '2309', acquisitionDate: '2025-04-01', cost: 1_500_000, years: 10, priorDepreciation: 0 };
+    expect(depreciationFor(asset, 2025)).toBe(Math.round((150_000 * 275) / 365));
+    expect(depreciationFor(asset, 2026)).toBe(150_000);
+  });
+});

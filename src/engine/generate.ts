@@ -15,6 +15,7 @@ import type { TraceRef } from './ids';
 import { afterClosingEvents, generateBooks } from './ledger';
 import { euros, formatAmount, roundTo, toEuros, type Cents } from './money';
 import { injectOrionCameo } from './orion';
+import { INTERVIEW_HOURS } from '../game/state';
 import { createRng } from './rng';
 import { expectedOpinion, injectDecoy, injectGoingConcern, type DecoyType, type GoingConcern, type Limitation } from './scenarios';
 import type { Books, Company, SectorId } from './types';
@@ -126,7 +127,12 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
   const disclosures = injections.filter((i) => i.disclosureOnly).length;
   const opinion = expectedOpinion({ amounts, disclosures, materiality, clientCorrects, limitation: spec.limitation, goingConcern: spec.goingConcern });
 
-  const optimalHours = injections.reduce((sum, injection, i) => sum + revealingHours(docs.procedures, traces(injection, i).filter((t) => !t.startsWith('topic:'))), 0);
+  // Chemin optimal : la procédure la moins chère qui révèle chaque anomalie, plus une question d'entretien
+  // (0,5 h) pour la confirmer auprès du client — équilibrage J6.
+  const optimalHours = injections.reduce(
+    (sum, injection, i) => sum + revealingHours(docs.procedures, traces(injection, i).filter((t) => !t.startsWith('topic:'))) + INTERVIEW_HOURS,
+    0,
+  );
   // Plancher de 2,5 h : il faut aussi le temps de lire le dossier et de recouper avant de conclure.
   const budgetHours = Math.ceil(Math.max(optimalHours, 2.5) * budgetFactor(spec.difficulty) * 2) / 2;
 

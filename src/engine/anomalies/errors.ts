@@ -1,7 +1,7 @@
 // Erreurs simples (niveaux 1-20). Audit Detective — créé par Gauthier Doumont.
 import { REF } from '../ids';
-import { depreciationFor, sortEntries } from '../ledger';
-import { addDays, formatAmount, formatDate, monthOf, vatOf } from '../money';
+import { daysInYear, daysUsed, depreciationFor, sortEntries } from '../ledger';
+import { addDays, formatAmount, formatDate, vatOf } from '../money';
 import type { Entry } from '../types';
 import {
   c, claim, d, deductibleVat, merge, octNov, partyName, paymentOf, purchaseEntries, q4, reverse, totalsOf,
@@ -225,7 +225,8 @@ export const capexExpensed: AnomalyDefinition = {
         number: invoice.number,
         cost: formatAmount(asset.cost),
         years: String(asset.years),
-        months: String(13 - monthOf(asset.acquisitionDate)),
+        days: String(daysUsed(asset.acquisitionDate)),
+        daysInYear: String(daysInYear(company.fiscalYear)),
         depreciation: formatAmount(depreciation),
         account: asset.account,
         depreciationAccount: asset.depreciationAccount,

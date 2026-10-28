@@ -129,7 +129,7 @@ export function injectGoingConcern(ctx: InjectContext, variant: GoingConcern): {
       ],
     });
     b.world.minutes.push(
-      { id: 'm-alarme', date: isoDate(year, 12, 28), meeting: 'Organe d’administration', text: 'L’actif net devient négatif : procédure de la sonnette d’alarme (CSA, art. 5:153 pour une SRL — À VÉRIFIER). Plan de redressement à présenter à l’assemblée.' },
+      { id: 'm-alarme', date: isoDate(year, 12, 28), meeting: 'Organe d’administration', text: 'L’actif net devient négatif : procédure de la sonnette d’alarme (CSA, art. 5:153 pour une SRL). Plan de redressement à présenter à l’assemblée.' },
       {
         id: 'm-annexe',
         date: isoDate(year + 1, 1, 20),

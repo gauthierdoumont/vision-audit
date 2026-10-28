@@ -3,15 +3,17 @@
 // Les anomalies sont injectées ensuite (voir anomalies/). Audit Detective — créé par Gauthier Doumont.
 //
 // Simplifications assumées :
-// - ONSS travailleur 13,07 %, cotisations patronales ~25 %, précompte professionnel forfaitaire 22 % (À VÉRIFIER) ;
+// - ONSS travailleur 13,07 % et cotisation patronale de base de 25 % (taux de base d'un employé du secteur privé ;
+//   ouvriers, réductions et cotisations sectorielles ignorés) ; précompte professionnel forfaitaire de 22 % :
+//   simplification du jeu, le vrai précompte dépend du barème ;
 // - cotisations sociales et précompte payés le 15 du mois suivant ;
 // - TVA déclarée par trimestre, payée le 20 du mois suivant ; la TVA du 4e trimestre reste ouverte au 31/12 ;
-// - amortissements linéaires, prorata temporis par mois l'année d'acquisition.
+// - amortissements linéaires, prorata temporis en jours l'année d'acquisition.
 import { STREETS } from '../content/names';
 import { COMMON_SERVICES, SECTORS, type SupplierSpec } from '../content/sectors';
 import { fillTemplate, randomPerson } from './company';
 import { invoiceTotals } from './invoices';
-import { addDays, daysInMonth, euros, formatAmount, isoDate, monthOf, quarterOf, roundTo, type Cents } from './money';
+import { addDays, daysInMonth, euros, formatAmount, isoDate, quarterOf, roundTo, type Cents } from './money';
 import type { Rng } from './rng';
 import type { Books, Company, Employee, Entry, EntryLine, FixedAsset, Invoice, InvoiceLine, Party, StockItem, World } from './types';
 
@@ -45,11 +47,27 @@ export function fictitiousCompanyNumber(rng: Rng): string {
   return `0000.${String(rng.int(100, 999))}.${String(rng.int(100, 999))}`;
 }
 
+const DAY = 86_400_000;
+
+export function daysInYear(year: number): number {
+  return (Date.UTC(year + 1, 0, 1) - Date.UTC(year, 0, 1)) / DAY;
+}
+
+/** Jours d'utilisation la première année, jour d'acquisition compris (ex. : 1er avril → 275 jours). */
+export function daysUsed(acquisitionDate: string): number {
+  const year = Number(acquisitionDate.slice(0, 4));
+  return (Date.UTC(year, 11, 31) - Date.parse(`${acquisitionDate}T00:00:00Z`)) / DAY + 1;
+}
+
+/**
+ * Dotation linéaire de l'exercice. L'année d'acquisition, prorata temporis en jours : obligatoire pour toutes
+ * les sociétés depuis 2020 (art. 196, § 2, CIR 92).
+ */
 export function depreciationFor(asset: FixedAsset, year: number): Cents {
   const annual = Math.round(asset.cost / asset.years);
   const acquisitionYear = Number(asset.acquisitionDate.slice(0, 4));
-  const months = acquisitionYear === year ? 13 - monthOf(asset.acquisitionDate) : 12;
-  return Math.min(Math.round((annual * months) / 12), asset.cost - asset.priorDepreciation);
+  const share = acquisitionYear === year ? daysUsed(asset.acquisitionDate) / daysInYear(year) : 1;
+  return Math.min(Math.round(annual * share), asset.cost - asset.priorDepreciation);
 }
 
 export function emptyWorld(): World {

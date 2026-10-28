@@ -1,7 +1,8 @@
 # Audit Detective
 
 Jeu d'enquête pour s'exercer à l'audit et à la comptabilité belge (PCMN, TVA, CSA, ISA).
-Application web installable (PWA), 100 % hors ligne.
+Application web installable (PWA), 100 % hors ligne : 100 niveaux de campagne générés de façon déterministe,
+des modes libres (partie rapide, grand dossier, défi du jour, mode infini) et des outils (calculatrice, glossaire, PCMN).
 
 - Jouer : https://gauthierdoumont.github.io/vision-audit/
 - Cahier des charges : [`CLAUDE.md`](CLAUDE.md) · Avancement : [`PROGRESS.md`](PROGRESS.md)

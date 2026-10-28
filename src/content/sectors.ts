@@ -3,7 +3,8 @@
 //
 // Taux de TVA belges utilisés : 6 % denrées alimentaires, 12 % repas servis au restaurant (hors boissons),
 // 21 % taux normal (boissons au restaurant, biens et services courants).
-// Durées d'amortissement : durées « usuelles » admises en pratique, À VÉRIFIER par Gauthier.
+// Durées d'amortissement : durées généralement admises par l'administration fiscale (informatique 3 ans,
+// mobilier 10 ans, matériel roulant 5 ans) ; pour les installations et machines (5 à 10 ans), À VÉRIFIER.
 import type { SectorId } from '../engine/types';
 
 export type Range = readonly [number, number];
@@ -16,7 +17,7 @@ export type AssetSpec = {
   label: string;
   account: '2300' | '2400' | '2410';
   depreciationAccount: '2309' | '2409' | '2419';
-  /** Durée d'utilité usuelle, À VÉRIFIER. */
+  /** Durée d'utilité usuelle (voir en tête de fichier). */
   years: number;
   cost: Range;
 };
@@ -224,7 +225,8 @@ export const SECTORS: Record<SectorId, SectorSpec> = {
     label: 'Horeca (restaurant)',
     companyNames: ['Brasserie {nom}', 'Le Bistrot de {ville}', 'La Table de {prenom}', 'Restaurant Le Relais'],
     salesMode: 'counter',
-    // Taux horeca À VÉRIFIER : 12 % sur les repas servis sur place, 21 % sur les boissons.
+    // Taux horeca : 12 % sur les repas servis sur place, 21 % sur les boissons. Un projet de 2025 ramènerait les
+    // boissons non alcoolisées à 12 % : À VÉRIFIER pour les exercices récents.
     salesMix: [
       { label: 'Repas servis sur place', vatRate: 12, share: 0.7 },
       { label: 'Boissons', vatRate: 21, share: 0.3 },
@@ -449,7 +451,7 @@ export const SECTORS: Record<SectorId, SectorSpec> = {
     roles: ['Chauffeur poids lourd', 'Planification', 'Mécanique'],
     assets: [
       { label: 'Tracteur routier', account: '2410', depreciationAccount: '2419', years: 5, cost: [90_000, 120_000] },
-      { label: 'Semi-remorque', account: '2410', depreciationAccount: '2419', years: 8, cost: [35_000, 50_000] },
+      { label: 'Semi-remorque', account: '2410', depreciationAccount: '2419', years: 5, cost: [35_000, 50_000] },
       { label: 'Mobilier de bureau', account: '2400', depreciationAccount: '2409', years: 10, cost: [5_000, 8_000] },
     ],
     capex: [
