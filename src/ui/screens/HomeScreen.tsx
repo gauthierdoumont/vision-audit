@@ -1,17 +1,28 @@
+import { LEVELS } from '../../content/levels';
+import type { GameState } from '../../game/state';
+import type { LevelResult } from '../../storage/db';
 import type { Screen } from '../App';
 
 type Mode = { id: string; label: string; detail: string };
 
-// Les modes arrivent aux jalons J1 à J5 ; ils sont affichés mais pas encore jouables.
-const MODES: Mode[] = [
-  { id: 'campaign', label: 'Campagne', detail: '100 enquêtes, de stagiaire à réviseur' },
+// Les autres modes arrivent aux jalons J5 ; ils sont affichés mais pas encore jouables.
+const UPCOMING_MODES: Mode[] = [
   { id: 'quick', label: 'Partie rapide', detail: 'Un dossier court, 10-15 min' },
   { id: 'big', label: 'Grand dossier', detail: 'Une enquête longue et piégeuse' },
   { id: 'daily', label: 'Défi du jour', detail: 'Le même dossier pour tout le monde, un essai' },
   { id: 'endless', label: 'Mode infini', detail: "Les dossiers s'enchaînent" },
 ];
 
-export function HomeScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
+type Props = {
+  savedGame: GameState | null;
+  results: LevelResult[];
+  onStart: (levelId: string, resume: boolean) => void;
+  onNavigate: (screen: Screen) => void;
+};
+
+export function HomeScreen({ savedGame, results, onStart, onNavigate }: Props) {
+  const savedLevel = savedGame && LEVELS.find((l) => l.id === savedGame.levelId);
+
   return (
     <section className="screen home">
       <header className="home-header">
@@ -20,8 +31,38 @@ export function HomeScreen({ onNavigate }: { onNavigate: (screen: Screen) => voi
         <p className="tagline">Vigie &amp; Associés, Namur. Un dossier vous attend sur votre bureau.</p>
       </header>
 
-      <nav className="menu" aria-label="Modes de jeu">
-        {MODES.map((mode) => (
+      {savedLevel && (
+        <button type="button" className="primary wide" onClick={() => onStart(savedLevel.id, true)}>
+          Reprendre : niveau {savedLevel.number} — {savedLevel.client.name}
+        </button>
+      )}
+
+      <h2 className="section-title">Campagne</h2>
+      <nav className="menu" aria-label="Niveaux de la campagne">
+        {LEVELS.map((level, index) => {
+          const result = results.find((r) => r.levelId === level.id);
+          const previous = LEVELS[index - 1];
+          const unlocked = !previous || (results.find((r) => r.levelId === previous.id)?.stars ?? 0) >= 1;
+          return (
+            <button key={level.id} type="button" className="menu-item" disabled={!unlocked} onClick={() => onStart(level.id, false)}>
+              <span className="menu-label">
+                {level.number}. {level.title}
+              </span>
+              <span className="menu-detail">
+                {level.client.name} · {level.format}
+              </span>
+              <span className="badge stars-badge" aria-label={`${result?.stars ?? 0} étoile(s)`}>
+                {'★'.repeat(result?.stars ?? 0)}
+                {'☆'.repeat(3 - (result?.stars ?? 0))}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <h2 className="section-title">Bientôt</h2>
+      <nav className="menu" aria-label="Autres modes de jeu">
+        {UPCOMING_MODES.map((mode) => (
           <button key={mode.id} type="button" className="menu-item" disabled>
             <span className="menu-label">{mode.label}</span>
             <span className="menu-detail">{mode.detail}</span>
