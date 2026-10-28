@@ -18,10 +18,13 @@ export type GameDocument = {
 export type Procedure = {
   id: string;
   name: string;
+  /** Coût en heures ; pour un sondage, coût par lot de `batchSize` pièces. */
   hours: number;
   description: string;
   /** Documents ajoutés au dossier une fois la procédure réalisée. */
   reveals: string[];
+  /** Sondage : le joueur choisit lui-même les pièces à examiner dans `pool`. */
+  sampling?: { pool: string[]; batchSize: number };
 };
 
 export type Topic = { id: string; question: string; answer: string[] };

@@ -329,3 +329,7 @@ legend { font-weight: 600; padding: 0 4px; }
 .doc-journal td,
 .doc-bank td,
 .doc-letter td { white-space: nowrap; }
+.sample-list { list-style: none; padding: 0; margin: 8px 0; max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+.sample-list li { padding: 2px 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+.sample-list li:last-child { border-bottom: none; }
+.sample-list label.inline { display: flex; align-items: center; gap: 8px; padding: 6px 0; }

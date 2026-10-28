@@ -1,5 +1,5 @@
 // État d'une partie et transitions (fonctions pures). Audit Detective — Gauthier Doumont.
-import type { Assertion, EntryLine, Level, Opinion, Qualification } from '../content/types';
+import type { Assertion, EntryLine, Level, Opinion, Procedure, Qualification } from '../content/types';
 
 export const INTERVIEW_HOURS = 0.5;
 
@@ -19,6 +19,8 @@ export type GameState = {
   briefingRead: boolean;
   hoursUsed: number;
   doneProcedures: string[];
+  /** Pièces examinées par sondage. */
+  sampledDocuments: string[];
   /** Sujets d'entretien abordés, au format `personnage.sujet`. */
   askedTopics: string[];
   pins: string[];
@@ -32,6 +34,7 @@ export type GameState = {
 export type GameAction =
   | { type: 'read-briefing' }
   | { type: 'run-procedure'; procedureId: string }
+  | { type: 'sample'; procedureId: string; documentIds: string[] }
   | { type: 'ask-topic'; characterId: string; topicId: string }
   | { type: 'toggle-pin'; clueId: string }
   | { type: 'use-hint' }
@@ -47,6 +50,7 @@ export function createGame(level: Level): GameState {
     briefingRead: false,
     hoursUsed: 0,
     doneProcedures: [],
+    sampledDocuments: [],
     askedTopics: [],
     pins: [],
     hintsUsed: 0,
@@ -70,6 +74,18 @@ export function gameReducer(level: Level, state: GameState, action: GameAction):
         ...state,
         hoursUsed: state.hoursUsed + procedure.hours,
         doneProcedures: [...state.doneProcedures, procedure.id],
+      };
+    }
+    case 'sample': {
+      const procedure = level.procedures.find((p) => p.id === action.procedureId);
+      const fresh = action.documentIds.filter(
+        (id) => procedure?.sampling?.pool.includes(id) && !state.sampledDocuments.includes(id),
+      );
+      if (!procedure?.sampling || fresh.length === 0) return state;
+      return {
+        ...state,
+        hoursUsed: state.hoursUsed + samplingCost(procedure, fresh.length),
+        sampledDocuments: [...state.sampledDocuments, ...fresh],
       };
     }
     case 'ask-topic': {
@@ -102,7 +118,17 @@ export function gameReducer(level: Level, state: GameState, action: GameAction):
 /** Documents visibles : ceux du départ, plus ceux révélés par les procédures réalisées. */
 export function availableDocumentIds(level: Level, state: GameState): string[] {
   const revealed = level.procedures.filter((p) => state.doneProcedures.includes(p.id)).flatMap((p) => p.reveals);
-  return [...new Set([...level.initialDocuments, ...revealed])];
+  return [...new Set([...level.initialDocuments, ...revealed, ...state.sampledDocuments])];
+}
+
+/** Coût d'un sondage : `hours` par lot entamé de `batchSize` pièces. */
+export function samplingCost(procedure: Procedure, count: number): number {
+  return Math.ceil(count / (procedure.sampling?.batchSize ?? 1)) * procedure.hours;
+}
+
+/** Reprend une sauvegarde d'une version antérieure en complétant les champs ajoutés depuis. */
+export function restoreGame(level: Level, saved: Partial<GameState>): GameState {
+  return { ...createGame(level), ...saved };
 }
 
 export function hoursLeft(level: Level, state: GameState): number {

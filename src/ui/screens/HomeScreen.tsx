@@ -1,4 +1,4 @@
-import { LEVELS } from '../../content/levels';
+import { LEVEL_SUMMARIES } from '../../content/levels';
 import type { GameState } from '../../game/state';
 import type { LevelResult } from '../../storage/db';
 import type { Screen } from '../App';
@@ -21,7 +21,7 @@ type Props = {
 };
 
 export function HomeScreen({ savedGame, results, onStart, onNavigate }: Props) {
-  const savedLevel = savedGame && LEVELS.find((l) => l.id === savedGame.levelId);
+  const savedLevel = savedGame && LEVEL_SUMMARIES.find((l) => l.id === savedGame.levelId);
 
   return (
     <section className="screen home">
@@ -33,15 +33,15 @@ export function HomeScreen({ savedGame, results, onStart, onNavigate }: Props) {
 
       {savedLevel && (
         <button type="button" className="primary wide" onClick={() => onStart(savedLevel.id, true)}>
-          Reprendre : niveau {savedLevel.number} — {savedLevel.client.name}
+          Reprendre : niveau {savedLevel.number} — {savedLevel.clientName}
         </button>
       )}
 
       <h2 className="section-title">Campagne</h2>
       <nav className="menu" aria-label="Niveaux de la campagne">
-        {LEVELS.map((level, index) => {
+        {LEVEL_SUMMARIES.map((level, index) => {
           const result = results.find((r) => r.levelId === level.id);
-          const previous = LEVELS[index - 1];
+          const previous = LEVEL_SUMMARIES[index - 1];
           const unlocked = !previous || (results.find((r) => r.levelId === previous.id)?.stars ?? 0) >= 1;
           return (
             <button key={level.id} type="button" className="menu-item" disabled={!unlocked} onClick={() => onStart(level.id, false)}>
@@ -49,7 +49,7 @@ export function HomeScreen({ savedGame, results, onStart, onNavigate }: Props) {
                 {level.number}. {level.title}
               </span>
               <span className="menu-detail">
-                {level.client.name} · {level.format}
+                {level.clientName} · difficulté {level.difficulty}
               </span>
               <span className="badge stars-badge" aria-label={`${result?.stars ?? 0} étoile(s)`}>
                 {'★'.repeat(result?.stars ?? 0)}

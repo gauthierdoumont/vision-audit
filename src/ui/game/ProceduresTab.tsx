@@ -4,6 +4,7 @@ import { hoursLeft, type GameState } from '../../game/state';
 import { PENALTY_HINT } from '../../game/scoring';
 import { formatHours } from '../format';
 import type { Dispatch } from './GameScreen';
+import { SamplingCard } from './SamplingCard';
 
 type Props = { level: Level; state: GameState; dispatch: Dispatch };
 
@@ -17,6 +18,7 @@ export function ProceduresTab({ level, state, dispatch }: Props) {
       <p className="muted">Chaque procédure coûte des heures et ajoute des documents au dossier.</p>
       <ul className="card-list">
         {level.procedures.map((p) => {
+          if (p.sampling) return <SamplingCard key={p.id} level={level} procedure={p} state={state} dispatch={dispatch} />;
           const done = state.doneProcedures.includes(p.id);
           const overBudget = !done && p.hours > left;
           return (

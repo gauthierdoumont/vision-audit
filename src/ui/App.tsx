@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { getLevel } from '../content/levels';
 import type { Level } from '../content/types';
 import { scoreGame, type ScoreResult } from '../game/scoring';
-import { createGame, type GameState } from '../game/state';
+import { createGame, restoreGame, type GameState } from '../game/state';
 import { clearCurrentGame, loadCurrentGame, loadResults, recordResult, type LevelResult } from '../storage/db';
 import { GameScreen } from './game/GameScreen';
 import { AboutScreen } from './screens/AboutScreen';
@@ -34,7 +34,7 @@ export function App() {
   const startLevel = (levelId: string, resume: boolean) => {
     const level = getLevel(levelId);
     if (!level) return;
-    const state = resume && savedGame?.levelId === levelId ? savedGame : createGame(level);
+    const state = resume && savedGame?.levelId === levelId ? restoreGame(level, savedGame) : createGame(level);
     setView({ name: 'game', level, state });
   };
 

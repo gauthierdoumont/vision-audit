@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "validate-levels": "vite-node scripts/validate-levels.ts"
   },
   "dependencies": {
     "idb": "^8.0.4",

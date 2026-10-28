@@ -30,6 +30,12 @@ export type ScoreResult = {
   stars: number;
 };
 
+/** Le compte saisi correspond au compte attendu ou à l'un de ses comptes parents (au moins 2 chiffres). */
+export function accountMatches(actual: string, expected: string): boolean {
+  const code = actual.trim();
+  return code === expected || (code.length >= 2 && expected.startsWith(code));
+}
+
 export function amountMatches(actual: number, expected: number): boolean {
   return Math.abs(actual - expected) <= Math.abs(expected) * AMOUNT_TOLERANCE;
 }
@@ -41,7 +47,7 @@ export function correctionMatches(actual: EntryLine[], expected: EntryLine[]): b
   const remaining = [...lines];
   return expected.every((exp) => {
     const index = remaining.findIndex(
-      (l) => l.account === exp.account && amountMatches(l.debit, exp.debit) && amountMatches(l.credit, exp.credit),
+      (l) => accountMatches(l.account, exp.account) && amountMatches(l.debit, exp.debit) && amountMatches(l.credit, exp.credit),
     );
     if (index === -1) return false;
     remaining.splice(index, 1);
@@ -57,12 +63,12 @@ export function isBalanced(lines: EntryLine[]): boolean {
 
 function relatesTo(finding: Finding, anomaly: Anomaly): boolean {
   return (
-    anomaly.accounts.some((a) => a.account === finding.account) || finding.clues.some((c) => anomaly.traces.includes(c))
+    anomaly.accounts.some((a) => accountMatches(finding.account, a.account)) || finding.clues.some((c) => anomaly.traces.includes(c))
   );
 }
 
 function evaluate(anomaly: Anomaly, finding: Finding | null): AnomalyResult {
-  const expected = finding && anomaly.accounts.find((a) => a.account === finding.account);
+  const expected = finding && anomaly.accounts.find((a) => accountMatches(finding.account, a.account));
   return {
     anomaly,
     finding,
