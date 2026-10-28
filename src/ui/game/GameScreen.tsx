@@ -4,6 +4,7 @@ import type { Level } from '../../content/types';
 import { gameReducer, hoursLeft, type GameAction, type GameState } from '../../game/state';
 import { saveCurrentGame } from '../../storage/db';
 import { formatHours } from '../format';
+import { ToolsPanel } from '../ToolsPanel';
 import { BriefingView } from './BriefingView';
 import { ConclusionTab } from './ConclusionTab';
 import { DossierTab } from './DossierTab';
@@ -28,6 +29,7 @@ type Props = { level: Level; initialState: GameState; onSubmit: (level: Level, s
 export function GameScreen({ level, initialState, onSubmit, onQuit }: Props) {
   const [state, dispatch] = useReducer((s: GameState, a: GameAction) => gameReducer(level, s, a), initialState);
   const [tab, setTab] = useState<TabId>('dossier');
+  const [tools, setTools] = useState(false);
 
   // Sauvegarde automatique à chaque action ; l'écriture IndexedDB peut échouer sans bloquer le jeu.
   useEffect(() => {
@@ -51,7 +53,10 @@ export function GameScreen({ level, initialState, onSubmit, onQuit }: Props) {
           <strong>{level.client.name}</strong>
           <span>Seuil : {level.materiality.toLocaleString('fr-BE')} €</span>
         </div>
-        <div className={`hours ${left < 0 ? 'over' : ''}`} aria-label="Heures restantes">
+        <button type="button" className="icon-button" onClick={() => setTools(true)} aria-label="Outils : calculatrice, glossaire, PCMN">
+          🧮
+        </button>
+        <div className={`hours ${left < 0 ? 'over' : ''}`} role="status" aria-label={`Heures restantes : ${formatHours(left)} sur ${formatHours(level.budgetHours)}`}>
           {formatHours(left)}
           <span>/ {formatHours(level.budgetHours)}</span>
         </div>
@@ -64,6 +69,8 @@ export function GameScreen({ level, initialState, onSubmit, onQuit }: Props) {
         {tab === 'carnet' && <NotebookTab level={level} state={state} dispatch={dispatch} />}
         {tab === 'conclusion' && <ConclusionTab level={level} state={state} dispatch={dispatch} />}
       </div>
+
+      {tools && <ToolsPanel onClose={() => setTools(false)} />}
 
       <nav className="tabs" aria-label="Onglets du dossier">
         {TABS.map((t) => (

@@ -84,6 +84,14 @@ export function HomeScreen({ savedGame, results, onStart, onNavigate }: Props) {
           <span className="menu-label">Statistiques et points faibles</span>
           <span className="menu-detail">Taux de réussite par cycle et par assertion</span>
         </button>
+        <button type="button" className="menu-item" onClick={() => onNavigate('tools')}>
+          <span className="menu-label">Outils</span>
+          <span className="menu-detail">Calculatrice, glossaire, aide-mémoire PCMN</span>
+        </button>
+        <button type="button" className="menu-item" onClick={() => onNavigate('settings')}>
+          <span className="menu-label">Réglages</span>
+          <span className="menu-detail">Thème clair ou sombre, taille du texte</span>
+        </button>
       </nav>
 
       <button type="button" className="link-button" onClick={() => onNavigate('about')}>

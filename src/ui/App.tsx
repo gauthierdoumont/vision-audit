@@ -11,9 +11,12 @@ import { AboutScreen } from './screens/AboutScreen';
 import { DebriefScreen } from './screens/DebriefScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { ModesScreen, type EndlessProgress } from './screens/ModesScreen';
+import { SettingsScreen } from './screens/SettingsScreen';
 import { StatsScreen } from './screens/StatsScreen';
+import { applySettings, loadSettings } from './settings';
+import { ToolsPanel } from './ToolsPanel';
 
-export type Screen = 'home' | 'about' | 'modes' | 'stats';
+export type Screen = 'home' | 'about' | 'modes' | 'stats' | 'settings' | 'tools';
 
 type View =
   | { name: Screen }
@@ -34,6 +37,10 @@ export function App() {
   useEffect(() => {
     if (view.name === 'home') refresh();
   }, [view.name, refresh]);
+
+  useEffect(() => {
+    loadSettings().then(applySettings);
+  }, []);
 
   const startLevel = (levelId: string, resume: boolean) => {
     let level: Level | undefined;
@@ -74,6 +81,8 @@ export function App() {
       )}
       {view.name === 'about' && <AboutScreen onBack={() => setView({ name: 'home' })} />}
       {view.name === 'modes' && <ModesScreen onStart={(id) => startLevel(id, false)} onBack={() => setView({ name: 'home' })} />}
+      {view.name === 'settings' && <SettingsScreen onBack={() => setView({ name: 'home' })} />}
+      {view.name === 'tools' && <ToolsPanel onClose={() => setView({ name: 'home' })} />}
       {view.name === 'stats' && <StatsScreen onStart={(id) => startLevel(id, false)} onBack={() => setView({ name: 'home' })} />}
       {view.name === 'game' && (
         <GameScreen
