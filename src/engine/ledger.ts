@@ -71,7 +71,7 @@ export function depreciationFor(asset: FixedAsset, year: number): Cents {
 }
 
 export function emptyWorld(): World {
-  return { employees: [], registry: [], minutes: [], afterClosing: [], deliveries: [], stock: [], contracts: [], bankAccounts: [], letters: [] };
+  return { employees: [], registry: [], minutes: [], afterClosing: [], deliveries: [], stock: [], contracts: [], bankAccounts: [], letters: [], reconciliation: [] };
 }
 
 export function sortEntries(entries: Entry[]): void {
@@ -613,8 +613,14 @@ export function afterClosingEvents(truth: Books, company: Company, rng: Rng): vo
     { id: 'onss-12', date: isoDate(year + 1, 1, 15), label: 'ONSS de décembre (travailleurs et employeur)', amount: -onss },
     { id: 'pp-12', date: isoDate(year + 1, 1, 15), label: 'Précompte professionnel de décembre', amount: -tax },
   );
+  // TVA des factures du 4e trimestre seulement : la déclaration du 3e trimestre (payée le 20 octobre) et une
+  // éventuelle régularisation après contrôle (payée à part) ne font pas partie de la déclaration du 4e trimestre.
   const q4 = (account: string) =>
-    truth.entries.filter((e) => quarterOf(e.date) === 4 && e.date.startsWith(String(year))).flatMap((e) => e.lines).filter((l) => l.account === account).reduce((s, l) => s + l.debit - l.credit, 0);
+    truth.entries
+      .filter((e) => quarterOf(e.date) === 4 && e.date.startsWith(String(year)) && (e.journal === 'ACH' || e.journal === 'VEN'))
+      .flatMap((e) => e.lines)
+      .filter((l) => l.account === account)
+      .reduce((s, l) => s + l.debit - l.credit, 0);
   const vat = -q4('451') - q4('411');
   if (vat !== 0) events.push({ id: 'tva-t4', date: isoDate(year + 1, 1, 20), label: 'TVA — déclaration du 4e trimestre', amount: -vat });
   events.sort((a, b) => a.date.localeCompare(b.date));

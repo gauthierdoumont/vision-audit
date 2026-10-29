@@ -17,6 +17,7 @@ export const DOC = {
   registry: 'registre-bce',
   payroll: 'journal-paie',
   personnel: 'registre-personnel',
+  timesheet: 'pointage',
   benford: 'analyse-benford',
   inventory: 'liste-inventaire',
   count: 'comptage-inventaire',
@@ -40,7 +41,11 @@ export const REF = {
   clientBalance: (partyId: string) => at(DOC.clientBalance, `s-${partyId}`),
   supplierConfirmation: (partyId: string) => at(DOC.supplierConfirmation(partyId), 'ecart'),
   clientConfirmation: (partyId: string) => at(DOC.clientConfirmation(partyId), 'ecart'),
+  /** Opération confirmée par le client (ex. : « Paiement reçu »), d'après ses propres livres. */
+  clientConfirmationLine: (partyId: string, entryId: string) => at(DOC.clientConfirmation(partyId), `c-${entryId}`),
   bank: (entryId: string) => at(DOC.bank, `b-${entryId}`),
+  /** Poste du rapprochement bancaire proposé par le client. */
+  reconciliation: (id: string) => at(DOC.bank, `rec-${id}`),
   bankConfirmation: (line: string) => at(DOC.bankConfirmation, line),
   analytic: (account: string) => at(DOC.analytic, `r-${account}`),
   balance: (account: string) => at(DOC.balance, `l-${account}`),
@@ -52,6 +57,7 @@ export const REF = {
   registry: (entryId: string) => at(DOC.registry, `r-${entryId}`),
   payroll: (employeeId: string) => at(DOC.payroll, `p-${employeeId}`),
   personnel: (line: string) => at(DOC.personnel, line),
+  timesheet: (employeeId: string) => at(DOC.timesheet, `t-${employeeId}`),
   benford: (digit: number) => at(DOC.benford, `d${digit}`),
   benfordThreshold: () => at(DOC.benford, 'seuil'),
   inventory: (itemId: string) => at(DOC.inventory, `s-${itemId}`),

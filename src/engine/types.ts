@@ -104,6 +104,8 @@ export type Employee = {
   monthlyGross: Cents;
   /** Inscrit au registre du personnel (et déclaré à l'ONSS). Un employé fantôme ne l'est pas. */
   registered: boolean;
+  /** Heures supplémentaires payées en décembre (sursalaire de 50 %) et taux horaire brut. */
+  overtime?: { hours: number; hourlyRate: Cents };
 };
 
 /** Extrait du registre BCE (fictif). */
@@ -152,6 +154,8 @@ export type World = {
   bankAccounts: BankAccount[];
   /** Courriers reçus (avocat, curateur…) : lignes de texte. */
   letters: { id: string; from: string; subject: string; lines: { id: string; text: string }[] }[];
+  /** Postes de rapprochement bancaire avancés par le client (ex. : chèques « en cours d'encaissement »). */
+  reconciliation: { id: string; label: string; amount: Cents }[];
 };
 
 export type Books = {

@@ -31,6 +31,8 @@ export function bankStatement({ company, truth, books }: DocContext): GameDocume
         return { id: `b-${e.id}`, cells: [formatDate(e.date), counterparty && !e.label.includes(counterparty) ? `${e.label} — ${counterparty}` : e.label, `${value > 0 ? '+' : ''}${amount(value)}`] };
       }),
       { id: 'close', cells: ['31/12', 'Solde final', amount(closing)] },
+      // Postes avancés par le client pour expliquer l'écart (à vérifier sur les relevés de janvier).
+      ...books.world.reconciliation.map((r) => ({ id: `rec-${r.id}`, cells: ['31/12', `Rapprochement du client : ${r.label}`, `+${amount(r.amount)}`] })),
     ],
     footer: [`Rapprochement : solde bancaire ${amount(closing)} — solde comptable du 550 ${amount(ledger)}. ${closing === ledger ? 'Aucun écart.' : 'Écart à expliquer.'}`],
   };
@@ -150,7 +152,7 @@ export function afterClosingDocument({ company, truth }: DocContext): GameDocume
 export function cutoffDocument({ company, truth, books }: DocContext): GameDocument {
   const year = company.fiscalYear;
   const from = isoDate(year, 12, 1);
-  const invoices = books.invoices.filter((i) => i.flow === 'sale' && i.date >= from).sort((a, b) => a.date.localeCompare(b.date));
+  const invoices = books.invoices.filter((i) => i.flow === 'sale' && i.kind === 'invoice' && i.date >= from).sort((a, b) => a.date.localeCompare(b.date));
   const deliveries = truth.world.deliveries;
   const lines: DocLine[] = invoices.map((invoice) => {
     const bl = deliveries.find((d) => d.invoiceNumber === invoice.number);

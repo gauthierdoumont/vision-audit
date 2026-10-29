@@ -21,9 +21,9 @@ export function minutesDocument({ company, books }: DocContext): GameDocument {
 export function lettersDocument({ books }: DocContext): GameDocument {
   return {
     id: DOC.legal,
-    title: 'Courriers reçus (avocats, curateurs)',
+    title: 'Courriers reçus (avocats, curateurs, administration)',
     kind: 'letter',
-    header: ['Correspondance juridique conservée par le client'],
+    header: ['Correspondance juridique et administrative conservée par le client'],
     columns: ['Expéditeur', 'Contenu'],
     lines: books.world.letters.flatMap((letter) => letter.lines.map((l) => ({ id: `${letter.id}-${l.id}`, cells: [letter.from, l.text] }))),
   };
@@ -44,10 +44,42 @@ export function payrollDocument({ company, books }: DocContext): GameDocument {
     kind: 'journal',
     header: [company.name, 'Rémunérations de décembre, virements du 31/12'],
     columns: ['Nom', 'Fonction', 'Brut', 'Net versé', 'Compte du bénéficiaire', 'Dimona'],
-    lines: books.world.employees.map((e, i) => ({
-      id: `p-${e.id}`,
-      cells: [`${e.firstName} ${e.lastName}`, e.role, amount(e.monthlyGross), amount(netOf(e.monthlyGross)), e.iban, e.registered ? dimona(i) : '—'],
-    })),
+    lines: books.world.employees.flatMap((e, i) => [
+      { id: `p-${e.id}`, cells: [`${e.firstName} ${e.lastName}`, e.role, amount(e.monthlyGross), amount(netOf(e.monthlyGross)), e.iban, e.registered ? dimona(i) : '—'] },
+      ...(e.overtime
+        ? [
+            {
+              id: `p-${e.id}-hs`,
+              cells: [
+                `${e.firstName} ${e.lastName}`,
+                `Heures supplémentaires : ${e.overtime.hours} h à ${amount(e.overtime.hourlyRate)} € + 50 %`,
+                amount(overtimePay(e.overtime)),
+                amount(netOf(overtimePay(e.overtime))),
+                e.iban,
+                '',
+              ],
+            },
+          ]
+        : []),
+    ]),
+  };
+}
+
+/** Sursalaire légal d'au moins 50 % pour les heures supplémentaires (100 % le dimanche et les jours fériés). */
+export function overtimePay({ hours, hourlyRate }: { hours: number; hourlyRate: number }): number {
+  return Math.round(hours * hourlyRate * 1.5);
+}
+
+/** Relevé de la pointeuse (vérité) : les heures supplémentaires réellement prestées en décembre. */
+export function timesheetDocument({ company, truth }: DocContext): GameDocument {
+  return {
+    id: DOC.timesheet,
+    title: `Relevé de pointage — décembre ${company.fiscalYear}`,
+    kind: 'report',
+    header: [company.name, 'Export de la pointeuse : heures prestées au-delà de l’horaire normal'],
+    columns: ['Nom', 'Fonction', 'Heures supplémentaires pointées'],
+    lines: truth.world.employees.filter((e) => e.overtime).map((e) => ({ id: `t-${e.id}`, cells: [`${e.firstName} ${e.lastName}`, e.role, `${e.overtime!.hours} h`] })),
+    footer: ['Les heures supplémentaires doivent être pointées et validées par la gérance avant d’être payées.'],
   };
 }
 

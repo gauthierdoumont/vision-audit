@@ -48,7 +48,10 @@ export function ProceduresTab({ level, state, dispatch }: Props) {
           <span className="cost">0 h · −{PENALTY_HINT} pts</span>
         </div>
         {hintOpen ? (
-          level.hint.map((line) => <p key={line} className="quote">{line}</p>)
+          <>
+            {level.hint.map((line) => <p key={line} className="quote">{line}</p>)}
+            <p className="muted">Toujours bloqué ? L’onglet Conclusion permet de voir la solution.</p>
+          </>
         ) : (
           <button
             type="button"

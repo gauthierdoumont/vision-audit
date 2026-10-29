@@ -1,11 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getLevel } from '../content/levels';
+import type { Tutorial } from '../content/tutorials';
 import type { Level } from '../content/types';
 import { scoreGame, type ScoreResult } from '../game/scoring';
 import { nextEndlessDifficulty } from '../engine/modes';
 import { statOutcomes } from '../game/progress';
 import { createGame, restoreGame, type GameState } from '../game/state';
-import { clearCurrentGame, loadCurrentGame, loadMeta, loadResults, recordResult, recordStats, saveMeta, type LevelResult } from '../storage/db';
+import { debriefNotions } from '../game/tutorials';
+import {
+  clearCurrentGame, loadCurrentGame, loadMeta, loadResults, loadSeenTutorials, markTutorialsSeen, recordResult, recordStats, saveMeta, type LevelResult,
+} from '../storage/db';
 import { GameScreen } from './game/GameScreen';
 import { AboutScreen } from './screens/AboutScreen';
 import { DebriefScreen } from './screens/DebriefScreen';
@@ -21,18 +25,33 @@ export type Screen = 'home' | 'about' | 'modes' | 'stats' | 'settings' | 'tools'
 type View =
   | { name: Screen }
   | { name: 'game'; level: Level; state: GameState }
-  | { name: 'debrief'; level: Level; state: GameState; result: ScoreResult };
+  | { name: 'debrief'; level: Level; state: GameState; result: ScoreResult; notions: Tutorial[] };
 
 export function App() {
   const [view, setView] = useState<View>({ name: 'home' });
   const [savedGame, setSavedGame] = useState<GameState | null>(null);
   const [results, setResults] = useState<LevelResult[]>([]);
+  // Fiches d'Hélène déjà lues ; une référence pour les lire depuis les rappels mémorisés.
+  const [seenTutorials, setSeenTutorials] = useState<string[]>([]);
+  const seenRef = useRef<string[]>([]);
+  const updateSeen = useCallback((seen: string[]) => {
+    seenRef.current = seen;
+    setSeenTutorials(seen);
+  }, []);
+  const markSeen = useCallback(
+    (ids: string[]) => {
+      updateSeen([...new Set([...seenRef.current, ...ids])]);
+      markTutorialsSeen(ids).catch(() => undefined);
+    },
+    [updateSeen],
+  );
 
   // IndexedDB peut être indisponible (navigation privée) : le jeu reste jouable sans sauvegarde.
   const refresh = useCallback(() => {
     loadCurrentGame().then((s) => setSavedGame(s ?? null)).catch(() => setSavedGame(null));
     loadResults().then(setResults).catch(() => setResults([]));
-  }, []);
+    loadSeenTutorials().then(updateSeen).catch(() => undefined);
+  }, [updateSeen]);
 
   useEffect(() => {
     if (view.name === 'home') refresh();
@@ -66,8 +85,10 @@ export function App() {
         .then((e) => saveMeta('endless', { difficulty: nextEndlessDifficulty(Number(a), result.stars), played: (e?.played ?? 0) + 1 }))
         .catch(() => undefined);
     }
-    setView({ name: 'debrief', level, state, result });
-  }, []);
+    const notions = debriefNotions(level, seenRef.current);
+    if (notions.length > 0) markSeen(notions.map((n) => n.id));
+    setView({ name: 'debrief', level, state, result, notions });
+  }, [markSeen]);
 
   return (
     <main className="app">
@@ -89,6 +110,8 @@ export function App() {
           key={view.level.id}
           level={view.level}
           initialState={view.state}
+          seenTutorials={seenTutorials}
+          onTutorialsSeen={markSeen}
           onSubmit={handleSubmit}
           onQuit={() => setView({ name: 'home' })}
         />
@@ -98,6 +121,7 @@ export function App() {
           level={view.level}
           state={view.state}
           result={view.result}
+          notions={view.notions}
           onReplay={() => setView({ name: 'game', level: view.level, state: createGame(view.level) })}
           onHome={() => setView({ name: 'home' })}
           {...(view.level.id.startsWith('endless:') ? { onNext: () => setView({ name: 'modes' }) } : {})}

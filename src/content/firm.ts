@@ -6,6 +6,7 @@ export const GRADES = [
   { from: 41, label: 'Senior' },
   { from: 61, label: 'Superviseur' },
   { from: 81, label: 'Réviseur' },
+  { from: 101, label: 'Associé' },
 ] as const;
 
 export function gradeFor(levelNumber: number): string {
@@ -18,6 +19,8 @@ export const PROMOTIONS: Record<number, string> = {
   41: 'Te voilà senior. Dossiers plus épais, fausses pistes, et des clients qui savent mentir.',
   61: 'Superviseur. Tu signes presque à ma place. Presque.',
   81: 'Réviseur. Les prochains dossiers ressemblent à des affaires qui ont fait la une. Ouvre l’œil.',
+  101: 'Orion Trading est tombée, et ton nom est sur la plaque : associé chez Vigie & Associés. Les dossiers les plus épineux sont pour toi.',
+  120: 'Dernier grand dossier de l’année. Après celui-ci, je te laisse le cabinet quelques semaines. Signe comme si j’étais là.',
 };
 
 export const MAXIME_BETS = [

@@ -66,6 +66,14 @@ export const CYCLE_OF: Record<AnomalyType, string> = {
   'overstated-rebates': 'achats',
   'disguised-loan': 'parties liées',
   'fictitious-escrow': 'trésorerie',
+  lapping: 'ventes',
+  'unauthorized-credit-note': 'ventes',
+  'double-payment': 'achats',
+  'stock-cutoff': 'stocks',
+  'scrapped-asset': 'immobilisations',
+  'rigged-reconciliation': 'trésorerie',
+  'inflated-overtime': 'personnel',
+  'unrecorded-tax-debt': 'provisions',
 };
 
 /** Difficulté minimale à partir de laquelle une anomalie apparaît dans les modes libres. */
@@ -95,4 +103,12 @@ export const MIN_DIFFICULTY: Record<AnomalyType, number> = {
   'overstated-rebates': 7,
   'disguised-loan': 7,
   'fictitious-escrow': 7,
+  'double-payment': 2,
+  'scrapped-asset': 2,
+  lapping: 4,
+  'unauthorized-credit-note': 4,
+  'rigged-reconciliation': 4,
+  'unrecorded-tax-debt': 4,
+  'stock-cutoff': 5,
+  'inflated-overtime': 5,
 };

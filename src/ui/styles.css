@@ -343,6 +343,12 @@ legend { font-weight: 600; padding: 0 4px; }
 .stars .off { color: var(--border); }
 .score { font-size: 1.4rem; font-weight: 700; margin: 0 0 8px; }
 .checks { list-style: none; padding: 0; }
+.checks li { margin: 6px 0; }
+.checks li.ko > [aria-hidden] { color: var(--danger); }
+.feedback { margin: 4px 0 8px 18px; padding-left: 10px; border-left: 2px solid var(--border); }
+.feedback p { margin: 4px 0; }
+.feedback .why { font-size: 0.92rem; }
+.solution-note { border-left: 4px solid var(--accent); }
 .debrief .card { margin: 12px 0; }
 .debrief .card h2 { font-size: 1.1rem; margin-top: 0; }
 .debrief .card h3 { font-size: 0.95rem; color: var(--accent); margin: 14px 0 4px; }
@@ -395,7 +401,7 @@ legend { font-weight: 600; padding: 0 4px; }
 .tools-panel { width: 100%; max-width: 560px; max-height: 88dvh; display: flex; flex-direction: column; background: var(--bg); border-radius: 16px 16px 0 0; padding: 12px 16px max(16px, env(safe-area-inset-bottom)); }
 @media (min-width: 760px) { .tools-overlay { align-items: center; } .tools-panel { border-radius: 16px; } }
 .tools-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.segmented { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.segmented { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .segmented button { font: inherit; font-size: 0.9rem; padding: 8px 4px; background: var(--surface); color: var(--text); border: none; cursor: pointer; }
 .segmented button.active { background: var(--accent); color: var(--on-accent); font-weight: 700; }
 .tool-scroll { overflow-y: auto; }
@@ -423,3 +429,10 @@ summary:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; }
 }
+
+/* Fiches d'Hélène */
+.mail.tutorial h2 { font-size: 1.15rem; margin: 0 0 8px; }
+.card.tutorial { border-left: 4px solid var(--accent); }
+.tutorial-entry { border-bottom: 1px solid var(--border); padding: 8px 0; }
+.tutorial-entry summary { cursor: pointer; font-weight: 600; }
+.tutorial-entry p { margin: 6px 0; }

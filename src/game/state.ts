@@ -31,6 +31,8 @@ export type GameState = {
   opinion: Opinion | null;
   continuity: boolean | null;
   submitted: boolean;
+  /** Le joueur a abandonné pour voir la solution : partie terminée, 0 étoile. */
+  solutionViewed: boolean;
 };
 
 export type GameAction =
@@ -45,7 +47,8 @@ export type GameAction =
   | { type: 'remove-finding'; findingId: string }
   | { type: 'set-opinion'; opinion: Opinion }
   | { type: 'set-continuity'; continuity: boolean }
-  | { type: 'submit' };
+  | { type: 'submit' }
+  | { type: 'view-solution' };
 
 export function createGame(level: Level): GameState {
   return {
@@ -62,6 +65,7 @@ export function createGame(level: Level): GameState {
     opinion: null,
     continuity: null,
     submitted: false,
+    solutionViewed: false,
   };
 }
 
@@ -122,6 +126,8 @@ export function gameReducer(level: Level, state: GameState, action: GameAction):
       return { ...state, continuity: action.continuity };
     case 'submit':
       return { ...state, submitted: true };
+    case 'view-solution':
+      return { ...state, submitted: true, solutionViewed: true };
   }
 }
 

@@ -15,7 +15,7 @@ for (const spec of CAMPAIGN_SPECS) {
   const again = JSON.stringify(generateCase(spec).level);
   if (again !== JSON.stringify(level)) errors.push(`${level.id} : non déterministe (même graine, cas différent)`);
   console.log(
-    `Niveau ${String(level.number).padStart(2)} · ${level.title} · ${level.client.name} · difficulté ${level.difficulty}` +
+    `Niveau ${(level.label ?? String(level.number)).padStart(3)} · ${level.title} · ${level.client.name} · difficulté ${level.difficulty}` +
       ` · budget ${level.budgetHours} h (optimal ${level.optimalHours} h) · ${level.anomalies.map((a) => a.title).join(' ; ')}`,
   );
 }
@@ -25,4 +25,4 @@ if (errors.length > 0) {
   for (const e of errors) console.error(`  - ${e}`);
   process.exit(1);
 }
-console.log(`\nOK : ${CAMPAIGN_SPECS.length + 1} niveaux valides.`);
+console.log(`\nOK : ${CAMPAIGN_SPECS.length + 1} niveaux valides (dont ${CAMPAIGN_SPECS.filter((s) => s.bis).length} niveaux « bis »).`);

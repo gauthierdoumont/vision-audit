@@ -22,6 +22,8 @@ import type { Books, Company, SectorId } from './types';
 
 export type LevelSpec = {
   number: number;
+  /** Niveau « bis » intercalé après le niveau `number` (même chapitre, numérotation inchangée). */
+  bis?: boolean;
   seed: string;
   difficulty: number;
   sector: SectorId;
@@ -106,10 +108,13 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
     },
     unlockLevel,
   );
-  const docClues = (refs: TraceRef[]) => refs.filter((r): r is { doc: string; line: string } => 'doc' in r).map(docs.clueOf);
+  // Une trace dans un document que ce dossier ne propose pas (procédure pas encore débloquée) est ignorée.
+  const documentIds = new Set(docs.documents.map((d) => d.id));
+  const present = (ref: TraceRef) => 'topic' in ref || documentIds.has(ref.doc);
+  const docClues = (refs: TraceRef[]) => refs.filter((r): r is { doc: string; line: string } => 'doc' in r && present(r)).map(docs.clueOf);
   const cast = buildCharacters(rng.fork('personnages'), company, books.world.employees, injections, (i) => docClues(injections[i]!.contradictedBy ?? []));
   const traces = (injection: Injection, index: number) =>
-    injection.traces.map((ref) => ('topic' in ref ? cast.topicClue(index, !!ref.confession) : docs.clueOf(ref)));
+    injection.traces.filter(present).map((ref) => ('topic' in ref ? cast.topicClue(index, !!ref.confession) : docs.clueOf(ref)));
 
   // ---------- Seuil, opinion, budget ----------
   // Seuil de signification : 0,5 à 1 % du chiffre d'affaires (repère usuel, À VÉRIFIER), loin des montants en jeu.
@@ -140,8 +145,8 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
   const texts = injections.map((i) => ANOMALY_TEXTS[i.type]);
   const managerName = `${company.manager.firstName} ${company.manager.lastName}`;
   const accountantName = `${company.accountant.firstName} ${company.accountant.lastName}`;
-  const promotion = spec.mode ? undefined : PROMOTIONS[spec.number];
-  const ines = spec.mode ? undefined : INES_LINES[spec.number];
+  const promotion = spec.mode || spec.bis ? undefined : PROMOTIONS[spec.number];
+  const ines = spec.mode || spec.bis ? undefined : INES_LINES[spec.number];
   const betHours = Math.min(budgetHours, Math.ceil(optimalHours + 1 + flavor.int(0, 2) / 2));
   const maximeBet = spec.mode || spec.number >= 3 ? { hours: betHours, line: flavor.pick(MAXIME_BETS).replace('{heures}', hoursLabel(betHours)) } : undefined;
   const body = [
@@ -162,8 +167,9 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
   ].slice(0, 6);
 
   const level: Level = {
-    id: spec.id ?? `level-${String(spec.number).padStart(3, '0')}`,
+    id: spec.id ?? levelId(spec),
     number: spec.number,
+    ...(spec.bis ? { label: `${spec.number} bis` } : {}),
     title: levelTitle(spec),
     format: spec.format ?? 'court',
     difficulty: spec.difficulty,
@@ -178,6 +184,7 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
     characters: cast.characters,
     anomalies: injections.map((injection, i) => ({
       id: `${injection.type}-${i}`,
+      type: injection.type,
       title: texts[i]!.title(injection.params),
       cycle: injection.cycle,
       accounts: injection.accounts.map((a) => ({ account: a.account, amount: toEuros(a.amount) })),
@@ -205,9 +212,19 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
     ...(spec.realCase ? { realCase: { ...REAL_CASES[spec.realCase] } } : {}),
     ...(spec.orion && ORION_DEBRIEFS[spec.number] ? { orion: ORION_DEBRIEFS[spec.number] } : {}),
     firm: { ...(maximeBet ? { maximeBet } : {}), ...(ines ? { ines } : {}) },
+    notices: [
+      ...(clientCorrects ? [] : ['client-refuse' as const]),
+      ...(spec.limitation === 'inventory' ? ['limitation-inventaire' as const] : []),
+      ...(spec.limitation === 'representation-letter' ? ['lettre-refusee' as const] : []),
+    ],
   };
 
   return { level, company, truth, books, injections, continuityTraces: continuity ? docClues(continuity.traces) : [] };
+}
+
+/** Identifiant d'un niveau de campagne : level-012, ou level-012-bis pour un niveau intercalé. */
+export function levelId(spec: Pick<LevelSpec, 'number' | 'bis'>): string {
+  return `level-${String(spec.number).padStart(3, '0')}${spec.bis ? '-bis' : ''}`;
 }
 
 /** Titre du niveau, tiré d'un sous-générateur dédié pour pouvoir l'afficher sans générer tout le cas. */

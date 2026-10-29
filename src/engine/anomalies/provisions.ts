@@ -1,8 +1,8 @@
 // Provisions et parties liées. Audit Detective — créé par Gauthier Doumont.
 import { REF } from '../ids';
 import { between, sortEntries } from '../ledger';
-import { euros, formatAmount, formatDate, isoDate, roundTo } from '../money';
-import { c, claim, d, everywhere, purchaseEntries, totalsOf, type AnomalyDefinition } from './types';
+import { addDays, euros, formatAmount, formatDate, isoDate, roundTo } from '../money';
+import { c, claim, d, deductibleVat, everywhere, purchaseEntries, salesTotal, totalsOf, type AnomalyDefinition } from './types';
 
 /** Un procès en cours, connu de la gérance, sans provision au bilan. */
 export const unrecordedProvision: AnomalyDefinition = {
@@ -88,4 +88,49 @@ export const relatedPartyUndisclosed: AnomalyDefinition = {
   },
 };
 
-export const PROVISION_ANOMALIES = [unrecordedProvision, relatedPartyUndisclosed];
+/** Contrôle TVA clôturé en décembre : régularisation et amende acceptées, mais rien au bilan (« on paie en janvier »). */
+export const unrecordedTaxDebt: AnomalyDefinition = {
+  type: 'unrecorded-tax-debt',
+  appliesTo: deductibleVat,
+  inject: (ctx) => {
+    const { books, truth, rng, company } = ctx;
+    const year = company.fiscalYear;
+    const vat = roundTo(Math.round((salesTotal(books) * rng.int(5, 10)) / 1000), euros(1));
+    // Amende fixée par l'administration selon la gravité (barème À VÉRIFIER) : ici environ 10 %.
+    const fine = roundTo(Math.round(vat / 10), euros(10));
+    const total = vat + fine;
+    const agreed = isoDate(year, 12, rng.int(3, 12));
+    const manager = `${company.manager.firstName} ${company.manager.lastName}`;
+    const payment = { id: ctx.newId('ev'), date: isoDate(year + 1, 1, rng.int(20, 30)), label: 'SPF Finances — régularisation TVA et amende (contrôle de décembre)', amount: -total };
+    everywhere(ctx, (b) => {
+      b.world.letters.push({
+        id: 'spf',
+        from: 'SPF Finances, administration de la TVA',
+        subject: 'Contrôle TVA',
+        lines: [
+          { id: 'l1', text: 'Contrôle : la TVA sur les frais des voitures de société a été déduite à 100 %. La déduction est limitée à l’usage professionnel, au maximum 50 %.' },
+          { id: 'l2', text: `Régularisation : ${formatAmount(vat)} € de TVA à reverser et ${formatAmount(fine)} € d’amende administrative.` },
+          { id: 'l3', text: `Accord signé par ${manager} le ${formatDate(agreed, true)}. Montant à payer au plus tard le 31/01/${year + 1}.` },
+        ],
+      });
+      b.world.minutes.push({ id: 'm-tva', date: addDays(agreed, 2), meeting: 'Organe d’administration', text: 'Contrôle TVA clôturé : la gérance a signé l’accord de régularisation, paiement prévu en janvier.' });
+      b.world.afterClosing.push({ ...payment });
+    });
+    // La dette existe dès l'accord de décembre, même si elle se paie en janvier.
+    truth.entries.push({ id: ctx.newId('e'), journal: 'OD', date: agreed, label: 'Régularisation TVA après contrôle', lines: [d('640', total), c('451', vat), c('452', fine)] });
+    sortEntries(truth.entries);
+    return {
+      type: 'unrecorded-tax-debt',
+      cycle: 'provisions',
+      assertion: 'exhaustivite',
+      qualification: 'erreur',
+      actor: 'manager',
+      accounts: [{ account: '640', amount: total }, { account: '451', amount: vat }, { account: '452', amount: fine }],
+      correction: [d('640', total), c('451', vat), c('452', fine)],
+      traces: [REF.legal('spf-l2'), REF.legal('spf-l3'), REF.minutes('m-tva'), REF.afterClosing(payment.id), REF.topic()],
+      params: { vat: formatAmount(vat), fine: formatAmount(fine), total: formatAmount(total), date: formatDate(agreed, true), manager, year: String(year) },
+    };
+  },
+};
+
+export const PROVISION_ANOMALIES = [unrecordedProvision, relatedPartyUndisclosed, unrecordedTaxDebt];

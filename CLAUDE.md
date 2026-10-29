@@ -78,6 +78,10 @@ scripts/         # validate-levels.ts, etc.
 
 Une partie en cours est **sauvegardée automatiquement** et reprend là où on s'est arrêté.
 
+**Bloqué ?** L'indice d'Hélène coûte des points. En dernier recours, « Voir la solution » arrête la partie à 0 étoile (le niveau suivant reste bloqué). Le débrief corrige quand même le travail : pour chaque critère, la réponse du joueur, la réponse attendue et le pourquoi de l'erreur.
+
+**Tutoriel** : les « fiches d'Hélène » présentent chaque nouvelle mécanique la première fois qu'elle apparaît (déclenchées par ce que le joueur voit, jamais par les anomalies cachées), et chaque type d'anomalie par un mini-cours avant son niveau d'introduction (sinon au débrief). Relecture dans Outils › Fiches.
+
 ---
 
 ## 5. Narration
@@ -241,7 +245,7 @@ Chaque entrée du catalogue contient : `id`, nom, cycle, assertion(s), erreur ou
 
 ## 11. Progression et modes
 
-### Campagne (100 niveaux)
+### Campagne (120 niveaux + niveaux « bis »)
 | Niveaux | Grade | Format | Contenu |
 |---|---|---|---|
 | 1-20 | Stagiaire | Court | Erreurs simples. Chaque type d'anomalie est introduit seul la première fois (mini-tutoriel) |
@@ -249,9 +253,12 @@ Chaque entrée du catalogue contient : `id`, nom, cycle, assertion(s), erreur ou
 | 41-60 | Senior | Moyen | 1-2 anomalies, fausses pistes, entretiens importants |
 | 61-80 | Superviseur | Long | Combinaisons, parties liées, petits groupes, opinions avec réserve |
 | 81-100 | Réviseur | Long | Cas inspirés de faits réels et dénouement de l'affaire Orion Trading |
+| 101-120 | Associé | Long | Les dossiers les plus épineux, toutes anomalies confondues |
 
-- Les niveaux de campagne sont définis dans `src/content/levels.ts` : `{ id, seed, difficulty, format, anomaliesImposées?, scénario, personnages }`.
-- Déblocage séquentiel ; il faut 1 étoile minimum pour passer au niveau suivant.
+- **Niveaux « bis »** (ex. : 7 bis) intercalés après un niveau, sans renuméroter : introduction de chaque nouvelle anomalie seule, marches de difficulté adoucies. Identifiant `level-NNN-bis`.
+
+- Les niveaux de campagne sont définis dans `src/content/levels/campaign.ts` : `{ id, seed, difficulty, format, anomaliesImposées?, scénario, personnages }`.
+- Déblocage séquentiel dans l'ordre de jeu ; il faut 1 étoile minimum pour passer au niveau suivant. Un niveau déjà réussi reste ouvert.
 
 ### Autres modes
 - **Partie rapide** : format Court, difficulté au choix entre 1 et 4, seed aléatoire.
@@ -325,6 +332,12 @@ Avance **un jalon à la fois**. Un jalon n'est terminé que si **tous ses critè
 - [x] Équilibrage des coûts et budgets
 - [x] Accessibilité, performance, polish visuel
 - [ ] Relecture du contenu par Gauthier (tous les `À VÉRIFIER` levés) — liste dans `PROGRESS.md`
+
+### J7 — Apprendre et rejouer
+- [x] Fiches d'Hélène (mécaniques) et mini-cours (anomalies), relisibles dans les outils
+- [x] « Voir la solution » et explication des erreurs au débrief
+- [x] Les 8 anomalies restantes du §9 ; 21 niveaux « bis » ; chapitre Associé (101-120)
+- [ ] Relecture par Gauthier des nouveaux textes et des nouveaux `À VÉRIFIER`
 
 ---
 

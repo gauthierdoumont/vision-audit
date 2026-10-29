@@ -80,10 +80,12 @@ export function validateCase(generated: GeneratedCase): string[] {
     if (net('411') !== sign * (invoice.vatDeductible ? vat : 0) || net('440') !== -sign * total) fail(`TVA incohérente sur ${invoice.number}`);
   }
 
-  // Banque : les anomalies peuvent mal imputer un paiement, jamais changer le solde réel du compte courant 550.
+  // Banque : les anomalies peuvent mal imputer un paiement, jamais changer le solde réel du compte courant 550,
+  // sauf un rapprochement « arrangé », dont l'écart est voulu et chiffré.
   const exact550 = (b: typeof truth) => trialBalance(b.entries).get('550');
   const net550 = (b: typeof truth) => (exact550(b)?.debit ?? 0) - (exact550(b)?.credit ?? 0);
-  if (net550(truth) !== net550(books)) fail('le 550 ne correspond plus au relevé bancaire');
+  const gap = injections.reduce((s, i) => s + (i.bankGap ?? 0), 0);
+  if (net550(books) - net550(truth) !== gap) fail('le 550 ne correspond plus au relevé bancaire');
 
   // Correction : livres + écritures de correction = vérité, compte par compte.
   const corrected = trialBalance([...books.entries, ...injections.map((i, n) => ({ id: `corr-${n}`, journal: 'OD' as const, date: '', label: '', lines: i.correction }))]);

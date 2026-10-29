@@ -61,7 +61,7 @@ export function isBalanced(lines: EntryLine[]): boolean {
   return Math.abs(debit - credit) < 0.005 && debit > 0;
 }
 
-function relatesTo(finding: Finding, anomaly: Anomaly): boolean {
+export function relatesTo(finding: Finding, anomaly: Anomaly): boolean {
   return (
     anomaly.accounts.some((a) => accountMatches(finding.account, a.account)) || finding.clues.some((c) => anomaly.traces.includes(c))
   );
@@ -112,13 +112,15 @@ export function scoreGame(level: Level, state: GameState): ScoreResult {
     state.hintsUsed * PENALTY_HINT +
     (opinionCorrect ? 0 : PENALTY_OPINION);
 
-  const total = Math.max(0, Math.round(accuracy + efficiency + justification - penalties));
+  // Solution consultée : le travail est corrigé, mais la partie ne rapporte ni points ni étoile.
+  const total = state.solutionViewed ? 0 : Math.max(0, Math.round(accuracy + efficiency + justification - penalties));
 
   const found = anomalies.filter((r) => r.account && r.amount).length;
   let stars = 0;
   if (found >= 1 && opinionCorrect) stars = 1;
   if (stars === 1 && found === level.anomalies.length) stars = 2;
   if (stars === 2 && state.hoursUsed <= level.budgetHours && state.hintsUsed === 0) stars = 3;
+  if (state.solutionViewed) stars = 0;
 
   return { anomalies, falsePositives, opinionCorrect, accuracy, efficiency, justification, penalties, total, stars };
 }

@@ -47,6 +47,8 @@ export type EntryLine = { account: string; debit: number; credit: number };
 
 export type Anomaly = {
   id: string;
+  /** Type du catalogue (ex. : duplicate-purchase), pour le mini-cours d'introduction. */
+  type?: string;
   title: string;
   cycle: string;
   /** Comptes acceptés comme « compte touché », avec le montant attendu pour chacun. */
@@ -62,11 +64,16 @@ export type Anomaly = {
   disclosureOnly?: boolean;
 };
 
+/** Consignes annoncées dans le briefing (le joueur les connaît dès le départ : rien n'est dévoilé). */
+export type LevelNotice = 'client-refuse' | 'limitation-inventaire' | 'lettre-refusee';
+
 export type Opinion = 'sans-reserve' | 'avec-reserve' | 'negative' | 'abstention';
 
 export type Level = {
   id: string;
   number: number;
+  /** Libellé affiché s'il diffère du numéro (ex. : « 12 bis »). */
+  label?: string;
   title: string;
   format: 'court' | 'moyen' | 'long';
   difficulty: number;
@@ -93,4 +100,5 @@ export type Level = {
   grade?: string;
   /** Les collègues du cabinet : le pari de Maxime, les outils d'Inès. */
   firm?: { maximeBet?: { hours: number; line: string }; ines?: string };
+  notices?: LevelNotice[];
 };
