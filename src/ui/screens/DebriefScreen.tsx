@@ -1,8 +1,8 @@
 // Débrief : score, étoiles et explication de chaque anomalie. Audit Detective — Gauthier Doumont.
 import { MAXIME_RESULTS } from '../../content/firm';
-import { ASSERTION_LABELS, OPINION_LABELS, QUALIFICATION_LABELS } from '../../content/labels';
 import type { Level } from '../../content/types';
 import { describeClue } from '../../game/clues';
+import { criteriaFeedback, falsePositiveWhy, opinionFeedback, revealingLeads, type CriterionFeedback } from '../../game/feedback';
 import type { ScoreResult } from '../../game/scoring';
 import type { GameState } from '../../game/state';
 import { formatEuro, formatHours } from '../format';
@@ -11,9 +11,34 @@ type Props = { level: Level; state: GameState; result: ScoreResult; onReplay: ()
 
 const mark = (ok: boolean) => (ok ? '✔' : '✘');
 
+/** Un critère : ✔/✘, ta réponse, la réponse attendue et, en cas d'erreur, le pourquoi. */
+function Criteria({ items }: { items: CriterionFeedback[] }) {
+  return (
+    <ul className="checks">
+      {items.map((c) => (
+        <li key={c.label} className={c.ok ? 'ok' : 'ko'}>
+          <span aria-hidden="true">{mark(c.ok)}</span> <strong>{c.label}</strong>
+          <span className="visually-hidden">{c.ok ? ' : juste' : ' : à revoir'}</span>
+          {c.ok ? (
+            <span className="muted"> — {c.expected}</span>
+          ) : (
+            <div className="feedback">
+              <p><span className="muted">Ta réponse :</span> {c.yours}</p>
+              <p><span className="muted">Attendu :</span> {c.expected}</p>
+              {c.why.map((w) => <p key={w} className="why">{w}</p>)}
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function DebriefScreen({ level, state, result, onReplay, onHome, onNext }: Props) {
   const verdict =
-    result.stars === 3 ? 'Impeccable. Je signe.' : result.stars > 0 ? 'Correct. On peut faire mieux.' : 'Je ne signe pas ça.';
+    state.solutionViewed
+      ? 'On regarde la solution ensemble.'
+      : result.stars === 3 ? 'Impeccable. Je signe.' : result.stars > 0 ? 'Correct. On peut faire mieux.' : 'Je ne signe pas ça.';
 
   return (
     <section className="screen debrief">
@@ -24,6 +49,12 @@ export function DebriefScreen({ level, state, result, onReplay, onHome, onNext }
         <span className="off">{'★'.repeat(3 - result.stars)}</span>
       </p>
       <p className="score">{result.total} / 100</p>
+      {state.solutionViewed && (
+        <p className="card static solution-note">
+          Solution consultée : la partie n’est pas notée et ne débloque pas le niveau suivant. Ton travail est quand même corrigé
+          ci-dessous, pour que tu voies où tu en étais. Rejoue le dossier quand tu veux.
+        </p>
+      )}
 
       <dl className="facts">
         <div><dt>Exactitude</dt><dd>{Math.round(result.accuracy)} / 60</dd></div>
@@ -42,16 +73,9 @@ export function DebriefScreen({ level, state, result, onReplay, onHome, onNext }
         <article key={r.anomaly.id} className="card static">
           <h2>{r.anomaly.title}</h2>
           {r.finding ? (
-            <ul className="checks">
-              <li>{mark(r.account)} Compte ({r.anomaly.accounts.map((a) => `${a.account} : ${formatEuro(a.amount)}`).join(' ou ')})</li>
-              <li>{mark(r.assertion)} Assertion : {ASSERTION_LABELS[r.anomaly.assertion]}</li>
-              <li>{mark(r.amount)} Montant (±1 %)</li>
-              <li>{mark(r.qualification)} Qualification : {QUALIFICATION_LABELS[r.anomaly.qualification]}</li>
-              <li>{mark(r.correction)} Écriture de correction</li>
-              <li>{mark(r.justified)} Appuyé par un indice pertinent</li>
-            </ul>
+            <Criteria items={criteriaFeedback(r)} />
           ) : (
-            <p className="warning">Anomalie non trouvée.</p>
+            <MissedAnomaly level={level} state={state} anomaly={r.anomaly} />
           )}
           <h3>Écriture attendue</h3>
           {r.anomaly.disclosureOnly && <p>Aucune écriture : l’information doit figurer dans l’annexe des comptes annuels.</p>}
@@ -106,19 +130,20 @@ export function DebriefScreen({ level, state, result, onReplay, onHome, onNext }
       {result.falsePositives.length > 0 && (
         <article className="card static">
           <h2>Accusations à tort</h2>
-          <p>
-            {result.falsePositives.length} constat(s) ne correspondent à aucune anomalie (comptes{' '}
-            {result.falsePositives.map((f) => f.account).join(', ')}).
-          </p>
+          <p>{result.falsePositives.length} constat(s) ne correspondent à aucune anomalie (−15 points chacun).</p>
+          {result.falsePositives.map((f) => (
+            <div key={f.id}>
+              <h3>Compte {f.account} · {formatEuro(f.amount)}</h3>
+              {falsePositiveWhy(level, f).map((p) => <p key={p}>{p}</p>)}
+            </div>
+          ))}
         </article>
       )}
 
       <article className="card static">
         <h2>Opinion {mark(result.opinionCorrect)}</h2>
-        <p>
-          Attendu : {OPINION_LABELS[level.expectedOpinion.opinion]}, {level.expectedOpinion.continuity ? 'avec' : 'sans'}{' '}
-          paragraphe sur la continuité.
-        </p>
+        <Criteria items={opinionFeedback(level, state)} />
+        <h3>Le raisonnement</h3>
         {level.expectedOpinion.explanation.map((p) => (
           <p key={p}>{p}</p>
         ))}
@@ -157,5 +182,25 @@ export function DebriefScreen({ level, state, result, onReplay, onHome, onNext }
         {onNext && <button type="button" className="primary" onClick={onNext}>Dossier suivant</button>}
       </div>
     </section>
+  );
+}
+
+/** Anomalie non trouvée : où elle se cachait, et ce que tu avais déjà fait pour la trouver. */
+function MissedAnomaly({ level, state, anomaly }: { level: Level; state: GameState; anomaly: Level['anomalies'][number] }) {
+  const { initial, procedures, interviews } = revealingLeads(level, state, anomaly);
+  return (
+    <div className="feedback">
+      <p className="warning">Anomalie non trouvée.</p>
+      <h3>Où la chercher</h3>
+      <ul>
+        {initial.map((title) => <li key={title}>Déjà dans le dossier de départ : {title}</li>)}
+        {procedures.map((p) => (
+          <li key={p.procedure}>
+            {p.procedure} ({formatHours(p.hours)}) — {p.done ? 'tu l’as faite : relis-la attentivement' : 'pas réalisée'}
+          </li>
+        ))}
+        {interviews.map((q) => <li key={q}>Entretien — {q}</li>)}
+      </ul>
+    </div>
   );
 }

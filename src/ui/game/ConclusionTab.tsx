@@ -11,6 +11,7 @@ type Props = { level: Level; state: GameState; dispatch: Dispatch };
 export function ConclusionTab({ level, state, dispatch }: Props) {
   const [adding, setAdding] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [givingUp, setGivingUp] = useState(false);
   const ready = state.opinion !== null && state.continuity !== null;
 
   return (
@@ -98,6 +99,20 @@ export function ConclusionTab({ level, state, dispatch }: Props) {
       ) : (
         <button type="button" className="primary wide" disabled={!ready} onClick={() => setConfirming(true)}>
           {ready ? 'Rendre le rapport à Hélène' : 'Choisis une opinion pour conclure'}
+        </button>
+      )}
+
+      {givingUp ? (
+        <div className="card static confirm">
+          <p>Voir la solution ? La partie s’arrête à 0 étoile et le niveau suivant reste bloqué. Ton travail sera quand même corrigé.</p>
+          <div className="form-actions">
+            <button type="button" className="secondary" onClick={() => setGivingUp(false)}>Je continue</button>
+            <button type="button" className="primary" onClick={() => dispatch({ type: 'view-solution' })}>Voir la solution</button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="link-button give-up" onClick={() => setGivingUp(true)}>
+          Je sèche : voir la solution
         </button>
       )}
     </section>
