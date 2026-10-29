@@ -72,6 +72,8 @@ export type Opinion = 'sans-reserve' | 'avec-reserve' | 'negative' | 'abstention
 export type Level = {
   id: string;
   number: number;
+  /** Libellé affiché s'il diffère du numéro (ex. : « 12 bis »). */
+  label?: string;
   title: string;
   format: 'court' | 'moyen' | 'long';
   difficulty: number;

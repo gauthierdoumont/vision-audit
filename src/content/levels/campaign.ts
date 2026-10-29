@@ -1,5 +1,6 @@
-// Campagne de 100 niveaux. Chapitre « Stagiaire » (1-20) : erreurs simples. Le niveau 1 est écrit à la main ;
-// les suivants sont générés à partir de leur graine. Audit Detective — créé par Gauthier Doumont.
+// Campagne : 120 niveaux, plus des niveaux « bis » intercalés. Chapitre « Stagiaire » (1-20) : erreurs simples.
+// Le niveau 1 est écrit à la main ; les suivants sont générés à partir de leur graine.
+// Audit Detective — créé par Gauthier Doumont.
 import type { LevelSpec } from '../../engine/generate';
 
 type Options = Pick<LevelSpec, 'decoys' | 'limitation' | 'goingConcern' | 'clientCorrects' | 'realCase' | 'orion'>;
@@ -24,7 +25,10 @@ const story = (number: number, sector: LevelSpec['sector'], difficulty: number, 
   ...options,
 });
 
-export const CAMPAIGN_SPECS: LevelSpec[] = [
+/** Niveau « bis » : intercalé après le niveau du même numéro, avec sa propre graine. */
+const bis = (level: LevelSpec): LevelSpec => ({ ...level, bis: true, seed: `${level.seed}-bis` });
+
+const MAIN_SPECS: LevelSpec[] = [
   // Chaque erreur est d'abord introduite seule, en difficulté basse (mini-tutoriel).
   spec(2, 'garage', 1, 'duplicate-purchase'),
   spec(3, 'boulangerie', 1, 'wrong-vat-rate'),
@@ -134,3 +138,63 @@ export const CAMPAIGN_SPECS: LevelSpec[] = [
   story(99, 'detail', 10, ['fictitious-bank-account', 'fictitious-supplier'], { realCase: 'satyam', clientCorrects: false, decoys: ['maintenance-contract'] }),
   story(100, 'informatique', 10, ['circular-sales', 'fictitious-supplier', 'personal-transfer'], { orion: 'final', realCase: 'lernout-hauspie', decoys: ['supplier-advance', 'late-hire'] }),
 ];
+
+/**
+ * Niveaux « bis » : chaque nouvelle anomalie y est d'abord introduite seule (mini-tutoriel), puis combinée.
+ * Ils adoucissent aussi les marches de difficulté. Les numéros des niveaux existants ne changent pas.
+ */
+const BIS_SPECS: LevelSpec[] = [
+  // Stagiaire : erreurs simples supplémentaires.
+  bis(spec(7, 'detail', 2, 'double-payment')),
+  bis(spec(9, 'transport', 2, 'scrapped-asset')),
+  bis(spec(14, 'grossiste', 3, 'double-payment')),
+  bis(spec(17, 'medical', 4, 'scrapped-asset')),
+  // Assistant : fraudes classiques supplémentaires.
+  bis(spec(23, 'grossiste', 3, 'lapping')),
+  bis(spec(27, 'garage', 3, 'rigged-reconciliation')),
+  bis(spec(30, 'detail', 4, 'unrecorded-tax-debt')),
+  bis(spec(34, 'informatique', 4, 'unauthorized-credit-note')),
+  bis(spec(38, 'horeca', 5, 'inflated-overtime')),
+  // Senior : nouvelles anomalies en format moyen.
+  bis(story(42, 'grossiste', 4, ['stock-cutoff'], { decoys: ['revenue-growth'] })),
+  bis(story(46, 'garage', 5, ['lapping', 'stock-cutoff'], { decoys: ['supplier-advance'] })),
+  bis(story(55, 'informatique', 6, ['rigged-reconciliation', 'scrapped-asset'], { decoys: ['maintenance-contract'] })),
+  bis(story(58, 'detail', 6, ['inflated-overtime', 'unrecorded-tax-debt'], { decoys: ['late-hire'] })),
+  // Superviseur : combinaisons, puis les quatre montages des affaires réelles, introduits seuls avant le chapitre Réviseur.
+  bis(story(64, 'construction', 7, ['unauthorized-credit-note', 'stock-cutoff', 'double-payment'], { clientCorrects: false, decoys: ['revenue-growth'] })),
+  bis(story(72, 'transport', 9, ['rigged-reconciliation', 'inflated-overtime'], { goingConcern: 'disclosed', decoys: ['late-hire'] })),
+  bis(story(77, 'informatique', 8, ['circular-sales'], { decoys: ['revenue-growth'] })),
+  bis(story(78, 'grossiste', 8, ['overstated-rebates'], { decoys: ['supplier-advance'] })),
+  bis(story(79, 'construction', 8, ['disguised-loan'], { decoys: ['maintenance-contract'] })),
+  bis(story(80, 'ecommerce', 8, ['fictitious-escrow'], { decoys: ['late-hire'] })),
+  // Réviseur : les nouvelles anomalies dans des dossiers longs.
+  bis(story(88, 'garage', 9, ['lapping', 'unrecorded-tax-debt', 'scrapped-asset'], { decoys: ['supplier-advance'] })),
+  bis(story(96, 'grossiste', 10, ['rigged-reconciliation', 'unauthorized-credit-note', 'stock-cutoff'], { limitation: 'representation-letter', decoys: ['revenue-growth'] })),
+];
+
+/** Chapitre « Associé » (101-120) : les dossiers les plus épineux, toutes anomalies confondues. */
+const PARTNER_SPECS: LevelSpec[] = [
+  story(101, 'garage', 9, ['lapping', 'capex-expensed', 'unrecorded-tax-debt'], { decoys: ['maintenance-contract'] }),
+  story(102, 'boulangerie', 9, ['inflated-overtime', 'obsolete-stock'], { goingConcern: 'disclosed', decoys: ['late-hire'] }),
+  story(103, 'informatique', 9, ['unauthorized-credit-note', 'related-party-undisclosed', 'scrapped-asset'], { decoys: ['revenue-growth'] }),
+  story(104, 'grossiste', 9, ['stock-cutoff', 'overstated-rebates', 'double-payment'], { decoys: ['supplier-advance'] }),
+  story(105, 'construction', 9, ['rigged-reconciliation', 'unrecorded-provision'], { goingConcern: 'hidden', decoys: ['maintenance-contract'] }),
+  story(106, 'horeca', 9, ['restaurant-vat', 'ghost-employee', 'unrecorded-tax-debt'], { decoys: ['late-hire'] }),
+  story(107, 'transport', 10, ['lapping', 'fictitious-supplier'], { clientCorrects: false, decoys: ['supplier-advance'] }),
+  story(108, 'ecommerce', 10, ['fictitious-escrow', 'stock-cutoff'], { limitation: 'representation-letter', decoys: ['revenue-growth'] }),
+  story(109, 'detail', 10, ['private-expense', 'inflated-overtime', 'scrapped-asset'], { decoys: ['maintenance-contract', 'late-hire'] }),
+  story(110, 'medical', 10, ['ghost-employee', 'double-payment', 'unrecorded-social-debt'], { decoys: ['late-hire'] }),
+  story(111, 'garage', 10, ['circular-sales', 'unauthorized-credit-note'], { decoys: ['revenue-growth'] }),
+  story(112, 'informatique', 10, ['disguised-loan', 'rigged-reconciliation'], { goingConcern: 'disclosed', decoys: ['supplier-advance'] }),
+  story(113, 'grossiste', 10, ['inflated-stock', 'overstated-rebates', 'lapping'], { clientCorrects: false, decoys: ['maintenance-contract'] }),
+  story(114, 'construction', 10, ['early-revenue', 'capitalized-expenses', 'unrecorded-tax-debt'], { decoys: ['late-hire'] }),
+  story(115, 'horeca', 10, ['fictitious-bank-account', 'inflated-overtime'], { goingConcern: 'hidden', decoys: ['revenue-growth'] }),
+  story(116, 'transport', 10, ['doubtful-receivable', 'stock-cutoff', 'scrapped-asset'], { decoys: ['supplier-advance'] }),
+  story(117, 'ecommerce', 10, ['fictitious-escrow', 'private-expense', 'double-payment'], { limitation: 'representation-letter', decoys: ['maintenance-contract'] }),
+  story(118, 'detail', 10, ['related-party-undisclosed', 'unrecorded-provision', 'obsolete-stock'], { decoys: ['maintenance-contract', 'revenue-growth'] }),
+  story(119, 'informatique', 10, ['circular-sales', 'rigged-reconciliation', 'ghost-employee'], { clientCorrects: false, decoys: ['late-hire'] }),
+  story(120, 'grossiste', 10, ['fictitious-sale', 'lapping', 'stock-cutoff', 'unrecorded-tax-debt'], { goingConcern: 'hidden', decoys: ['supplier-advance', 'revenue-growth'] }),
+];
+
+/** Ordre de jeu : chaque niveau « bis » suit le niveau de même numéro. */
+export const CAMPAIGN_SPECS: LevelSpec[] = [...MAIN_SPECS, ...BIS_SPECS, ...PARTNER_SPECS].sort((a, b) => a.number - b.number || Number(!!a.bis) - Number(!!b.bis));

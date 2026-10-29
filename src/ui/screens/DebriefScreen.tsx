@@ -52,7 +52,7 @@ export function DebriefScreen({ level, state, result, notions = [], onReplay, on
 
   return (
     <section className="screen debrief">
-      <p className="eyebrow">Débrief · {level.number > 0 ? `Niveau ${level.number}` : level.grade}</p>
+      <p className="eyebrow">Débrief · {level.number > 0 ? `Niveau ${level.label ?? level.number}` : level.grade}</p>
       <h1>{verdict}</h1>
       <p className="stars" aria-label={`${result.stars} étoile(s) sur 3`}>
         {'★'.repeat(result.stars)}

@@ -1,5 +1,6 @@
 import { GRADES } from '../../content/firm';
 import { LEVEL_SUMMARIES } from '../../content/levels';
+import { isUnlocked } from '../../game/progress';
 import type { GameState } from '../../game/state';
 import type { LevelResult } from '../../storage/db';
 import type { Screen } from '../App';
@@ -14,8 +15,7 @@ type Props = {
 export function HomeScreen({ savedGame, results, onStart, onNavigate }: Props) {
   const savedLevel = savedGame && LEVEL_SUMMARIES.find((l) => l.id === savedGame.levelId);
   const starsOf = (id: string) => results.find((r) => r.levelId === id)?.stars;
-  // Déblocage séquentiel : une étoile au niveau précédent suffit.
-  const unlocked = (number: number) => number === 1 || (starsOf(LEVEL_SUMMARIES[number - 2]!.id) ?? 0) >= 1;
+  const unlocked = (id: string) => isUnlocked(LEVEL_SUMMARIES, starsOf, id);
 
   return (
     <section className="screen home">
@@ -27,7 +27,7 @@ export function HomeScreen({ savedGame, results, onStart, onNavigate }: Props) {
 
       {savedLevel && (
         <button type="button" className="primary wide" onClick={() => onStart(savedLevel.id, true)}>
-          Reprendre : niveau {savedLevel.number} — {savedLevel.clientName}
+          Reprendre : niveau {savedLevel.label} — {savedLevel.clientName}
         </button>
       )}
       {savedGame && !savedLevel && (
@@ -42,7 +42,7 @@ export function HomeScreen({ savedGame, results, onStart, onNavigate }: Props) {
         const levels = LEVEL_SUMMARIES.filter((l) => l.number >= grade.from && l.number < next);
         if (levels.length === 0) return null;
         const stars = levels.reduce((s, l) => s + (starsOf(l.id) ?? 0), 0);
-        const current = levels.some((l) => unlocked(l.number) && !starsOf(l.id));
+        const current = levels.some((l) => unlocked(l.id) && !starsOf(l.id));
         return (
           <details key={grade.label} className="chapter" open={current || undefined}>
             <summary>
@@ -55,9 +55,9 @@ export function HomeScreen({ savedGame, results, onStart, onNavigate }: Props) {
               {levels.map((level) => {
                 const earned = starsOf(level.id) ?? 0;
                 return (
-                  <button key={level.id} type="button" className="menu-item" disabled={!unlocked(level.number)} onClick={() => onStart(level.id, false)}>
+                  <button key={level.id} type="button" className="menu-item" disabled={!unlocked(level.id)} onClick={() => onStart(level.id, false)}>
                     <span className="menu-label">
-                      {level.number}. {level.title}
+                      {level.label}. {level.title}
                     </span>
                     <span className="menu-detail">
                       {level.clientName} · difficulté {level.difficulty}

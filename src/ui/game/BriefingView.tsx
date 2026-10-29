@@ -44,7 +44,7 @@ export function BriefingView({ level, tutorials, onStart }: Props) {
     <section className="screen briefing">
       <p className="eyebrow">
         {level.grade ? `${level.grade} · ` : ''}
-        {level.number > 0 ? `Niveau ${level.number} · ` : ''}
+        {level.number > 0 ? `Niveau ${level.label ?? level.number} · ` : ''}
         {level.title}
       </p>
       <article className="mail">

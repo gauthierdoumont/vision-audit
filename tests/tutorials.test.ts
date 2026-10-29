@@ -2,6 +2,7 @@
 import { allLevels, getLevel } from '../src/content/levels';
 import { level001 } from '../src/content/levels/level-001';
 import { ANOMALY_TYPES } from '../src/engine/anomalies';
+import { isUnlocked } from '../src/game/progress';
 import { briefingTutorials, debriefNotions } from '../src/game/tutorials';
 
 const ids = (list: { id: string }[]) => list.map((t) => t.id);
@@ -46,5 +47,21 @@ describe('fiches d’Hélène', () => {
     }
     expect(new Set(seen).size).toBe(seen.length);
     for (const type of new Set(allLevels().flatMap((l) => l.anomalies.map((a) => a.type)))) expect(seen).toContain(`a:${type}`);
+  });
+});
+
+describe('déblocage avec les niveaux « bis »', () => {
+  const order = [{ id: 'level-007' }, { id: 'level-007-bis' }, { id: 'level-008' }, { id: 'level-009' }];
+  const unlocked = (stars: Record<string, number>, id: string) => isUnlocked(order, (x) => stars[x], id);
+
+  it('nouveau joueur : le niveau bis s’intercale dans la progression', () => {
+    expect(unlocked({ 'level-007': 1 }, 'level-007-bis')).toBe(true);
+    expect(unlocked({ 'level-007': 1 }, 'level-008')).toBe(false);
+    expect(unlocked({ 'level-007': 1, 'level-007-bis': 1 }, 'level-008')).toBe(true);
+  });
+
+  it('progression déjà faite avant l’ajout des niveaux bis : rien ne se reverrouille', () => {
+    const stars = { 'level-007': 3, 'level-008': 2, 'level-009': 1 };
+    for (const { id } of order) expect(unlocked(stars, id), id).toBe(true);
   });
 });

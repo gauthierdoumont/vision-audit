@@ -87,8 +87,23 @@ describe('cas générés : tous secteurs × toutes anomalies', () => {
 });
 
 describe('campagne', () => {
-  it('niveaux numérotés sans trou à partir de 1', () => {
-    expect(LEVEL_SUMMARIES.map((l) => l.number)).toEqual(Array.from({ length: LEVEL_SUMMARIES.length }, (_, i) => i + 1));
+  it('niveaux numérotés sans trou de 1 à 120, chaque « bis » juste après son niveau', () => {
+    const main = LEVEL_SUMMARIES.filter((l) => !l.id.endsWith('-bis'));
+    expect(main.map((l) => l.number)).toEqual(Array.from({ length: 120 }, (_, i) => i + 1));
+    LEVEL_SUMMARIES.forEach((l, i) => {
+      if (l.id.endsWith('-bis')) expect(LEVEL_SUMMARIES[i - 1]!.number, l.id).toBe(l.number);
+    });
+    expect(new Set(LEVEL_SUMMARIES.map((l) => l.id)).size).toBe(LEVEL_SUMMARIES.length);
+  });
+
+  it('chaque anomalie du catalogue apparaît d’abord seule dans un niveau d’introduction', () => {
+    const firstSeen = new Map<string, number>();
+    for (const summary of LEVEL_SUMMARIES) {
+      const level = getLevel(summary.id)!;
+      for (const anomaly of level.anomalies) if (!firstSeen.has(anomaly.type!)) firstSeen.set(anomaly.type!, level.anomalies.length);
+    }
+    expect([...firstSeen.keys()].sort()).toEqual(ANOMALY_CATALOGUE.map((a) => a.type).sort());
+    for (const [type, count] of firstSeen) expect(count, type).toBe(1);
   });
 
   it('les résumés de l’accueil correspondent aux niveaux générés', () => {

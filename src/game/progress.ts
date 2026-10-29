@@ -28,3 +28,12 @@ export function statLines(stats: { key: string; seen: number; success: number }[
 export function weakestCycle(stats: { key: string; seen: number; success: number }[]): string | undefined {
   return statLines(stats, 'cycle')[0]?.label;
 }
+
+/**
+ * Déblocage séquentiel dans l'ordre de jeu (niveaux « bis » compris) : une étoile au niveau précédent suffit.
+ * Un niveau déjà réussi reste ouvert, même si un niveau « bis » a été intercalé avant lui depuis.
+ */
+export function isUnlocked(order: readonly { id: string }[], starsOf: (id: string) => number | undefined, id: string): boolean {
+  const index = order.findIndex((l) => l.id === id);
+  return index <= 0 || (starsOf(id) ?? 0) >= 1 || (starsOf(order[index - 1]!.id) ?? 0) >= 1;
+}

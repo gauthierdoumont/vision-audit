@@ -494,10 +494,10 @@ export const ANOMALY_TEXTS: Record<AnomalyType, AnomalyText> = {
   },
   lapping: {
     levelTitles: ['Le jeu des chaises musicales', 'Un paiement en cache un autre', 'Décalage horaire'],
-    title: (p) => `Encaissement de ${p.clientA} détourné et masqué par celui de ${p.clientB} (${p.totalA} €)`,
+    title: (p) => `Paiement du client ${p.clientA} détourné, masqué par celui du client ${p.clientB} (${p.totalA} €)`,
     explanation: (p) => [
       `${p.clientA} a payé sa facture ${p.numberA} (${p.totalA} €) le ${p.dateA}. L’argent n’est jamais arrivé sur le compte de la société.`,
-      `Pour le cacher, le paiement de ${p.clientB} (${p.totalB} €, reçu le ${p.dateB}) a été imputé sur la facture de ${p.clientA}. ${p.clientB} paraît donc encore devoir sa facture ${p.numberB}.`,
+      `Pour le cacher, le paiement du client ${p.clientB} (${p.totalB} €, reçu le ${p.dateB}) a été imputé sur la facture ${p.numberA}. ${p.clientB} paraît donc encore devoir sa facture ${p.numberB}.`,
       `Les créances clients (400) sont surévaluées de ${p.totalA} € : c’est en réalité une créance sur ${p.accountant} (416).`,
       'Assertion touchée : l’existence. C’est une fraude (lapping) : chaque nouveau paiement bouche le trou du précédent.',
     ],
@@ -507,8 +507,8 @@ export const ANOMALY_TEXTS: Record<AnomalyType, AnomalyText> = {
       question: (p) => `Pourquoi ${p.clientB} doit-il encore la facture ${p.numberB} ?`,
       answer: (p) => [`${p.clientB} ? Un mauvais payeur, je l’ai relancé deux fois.`, 'Il finira par payer, comme d’habitude.'],
       confession: (p) => [
-        `Il a payé, oui… J’ai mis son paiement sur la facture de ${p.clientA}.`,
-        `Le paiement de ${p.clientA}, je l’avais gardé. Je comptais le remettre avant la clôture.`,
+        `Il a payé, oui… J’ai mis son paiement sur la facture ${p.numberA}.`,
+        `Le paiement du client ${p.clientA}, je l’avais gardé. Je comptais le remettre avant la clôture.`,
       ],
     },
     isa: 'ISA 240 (fraude), ISA 505 (confirmations externes), ISA 500 (éléments probants)',
@@ -517,7 +517,7 @@ export const ANOMALY_TEXTS: Record<AnomalyType, AnomalyText> = {
     levelTitles: ['Un geste trop commercial', 'La note de crédit de trop', 'Remise sans signature'],
     title: (p) => `Note de crédit ${p.creditNote} non autorisée (${p.client}, ${p.total} €)`,
     explanation: (p) => [
-      `Le ${p.date}, une note de crédit ${p.creditNote} annule la facture ${p.number} de ${p.client}. Personne à la gérance ne l’a signée, alors que le PV l’exige.`,
+      `Le ${p.date}, une note de crédit ${p.creditNote} annule la facture ${p.number} du client ${p.client}. Personne à la gérance ne l’a signée, alors que le PV l’exige.`,
       `Or ${p.client} confirme avoir payé la facture en entier, en espèces, le ${p.paid}. L’argent est resté chez ${p.seller}.`,
       `Correction : annuler la note de crédit (ventes 700 : ${p.base} € ; TVA 451 : ${p.vat} €) et constater une créance de ${p.total} € sur ${p.seller} (416).`,
       'Assertion touchée : l’existence (la note de crédit ne correspond à aucune remise réelle). C’est une fraude.',
@@ -567,7 +567,7 @@ export const ANOMALY_TEXTS: Record<AnomalyType, AnomalyText> = {
   },
   'scrapped-asset': {
     levelTitles: ['Une machine qui n’existe plus', 'Au rebut, mais au bilan', 'Le fantôme de l’atelier'],
-    title: (p) => `« ${p.asset} » mis au rebut le ${p.date} mais toujours à l’actif`,
+    title: (p) => `Bien mis au rebut le ${p.date} mais toujours à l’actif : « ${p.asset} »`,
     explanation: (p) => [
       `« ${p.asset} » a été mis au rebut le ${p.date} (PV, facture d’enlèvement de ${p.recycler}). Il figure pourtant toujours au tableau des immobilisations, amorti toute l’année.`,
       `Il fallait l’amortir jusqu’à sa sortie : ${p.days} jours sur ${p.daysInYear}, soit ${p.toDate} € au lieu de ${p.full} € (prorata en jours, À VÉRIFIER).`,
@@ -584,9 +584,9 @@ export const ANOMALY_TEXTS: Record<AnomalyType, AnomalyText> = {
   },
   'rigged-reconciliation': {
     levelTitles: ['Le chèque qui n’arrive jamais', 'Rapprochement créatif', 'En cours d’encaissement…'],
-    title: (p) => `Rapprochement bancaire arrangé : chèque de ${p.client} détourné (${p.total} €)`,
+    title: (p) => `Rapprochement bancaire arrangé : chèque du client ${p.client} détourné (${p.total} €)`,
     explanation: (p) => [
-      `Le rapprochement du client justifie l’écart avec la banque par un chèque de ${p.client} (${p.total} €) « remis le 31/12 ». La banque ne l’a jamais reçu.`,
+      `Le rapprochement du client justifie l’écart avec la banque par un chèque du client ${p.client} (${p.total} €) « remis le 31/12 ». La banque ne l’a jamais reçu.`,
       `${p.client} confirme avoir payé la facture ${p.number} par chèque le ${p.cheque}. Ce chèque a été encaissé ailleurs, par ${p.accountant}.`,
       `Le compte 550 est surévalué de ${p.total} € : c’est une créance sur ${p.accountant} (débit 416, crédit 550).`,
       'Assertion touchée : l’existence. C’est une fraude : un poste de rapprochement se vérifie toujours sur les relevés suivants et auprès de la banque.',
@@ -594,9 +594,9 @@ export const ANOMALY_TEXTS: Record<AnomalyType, AnomalyText> = {
     hint: ['Le rapprochement bancaire : chaque poste en suspens doit se retrouver sur les relevés de janvier.'],
     focus: 'la trésorerie',
     topic: {
-      question: (p) => `Le chèque de ${p.client} en cours d’encaissement au 31/12, où en est-il ?`,
+      question: (p) => `Le chèque du client ${p.client}, en cours d’encaissement au 31/12, où en est-il ?`,
       answer: () => ['Déposé le 31 au soir. Les banques sont lentes entre les fêtes, vous savez.', 'Il apparaîtra sur le relevé de janvier.'],
-      confession: (p) => [`Il n’apparaîtra pas. Le chèque de ${p.client}, je l’ai encaissé sur mon compte.`, 'J’ai mis l’écart en « chèque en transit » pour gagner du temps.'],
+      confession: () => ['Il n’apparaîtra pas. Ce chèque, je l’ai encaissé sur mon compte.', 'J’ai mis l’écart en « chèque en transit » pour gagner du temps.'],
     },
     isa: 'ISA 240 (fraude), ISA 505 (confirmations externes), ISA 500 (éléments probants)',
   },

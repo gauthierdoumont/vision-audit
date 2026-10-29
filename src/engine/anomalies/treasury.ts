@@ -94,10 +94,10 @@ export const riggedReconciliation: AnomalyDefinition = {
     const chequeDate = [isoDate(year, 12, rng.int(14, 22)), addDays(invoice.date, 3)].sort()[1]!;
     const id = ctx.newId('e');
     // Vérité : le client a payé par chèque ; le chèque a été encaissé sur le compte du comptable (créance 416).
-    truth.entries.push({ id, journal: 'FIN', date: chequeDate, label: `Chèque de ${client} encaissé sur un compte privé`, lines: [d('416', total), c('400', total)], partyId: invoice.partyId, invoiceId: invoice.id });
+    truth.entries.push({ id, journal: 'FIN', date: chequeDate, label: `Chèque du client ${client} encaissé sur un compte privé`, lines: [d('416', total), c('400', total)], partyId: invoice.partyId, invoiceId: invoice.id });
     // Livres : le chèque est « remis à la banque le 31/12 » et le rapprochement invente un encaissement en cours.
     books.entries.push({ id, journal: 'FIN', date: isoDate(year, 12, 31), label: `Remise de chèque — ${invoice.number}`, lines: [d('550', total), c('400', total)], partyId: invoice.partyId, invoiceId: invoice.id });
-    books.world.reconciliation.push({ id: 'cheque', label: `chèque de ${client} remis le 31/12, en cours d’encaissement`, amount: total });
+    books.world.reconciliation.push({ id: 'cheque', label: `chèque du client ${client} remis le 31/12, en cours d’encaissement`, amount: total });
     sortEntries(truth.entries);
     sortEntries(books.entries);
     const accountant = books.world.employees.find((e) => e.role === 'Comptabilité')!;
