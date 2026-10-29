@@ -178,6 +178,7 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
     characters: cast.characters,
     anomalies: injections.map((injection, i) => ({
       id: `${injection.type}-${i}`,
+      type: injection.type,
       title: texts[i]!.title(injection.params),
       cycle: injection.cycle,
       accounts: injection.accounts.map((a) => ({ account: a.account, amount: toEuros(a.amount) })),
@@ -205,6 +206,11 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
     ...(spec.realCase ? { realCase: { ...REAL_CASES[spec.realCase] } } : {}),
     ...(spec.orion && ORION_DEBRIEFS[spec.number] ? { orion: ORION_DEBRIEFS[spec.number] } : {}),
     firm: { ...(maximeBet ? { maximeBet } : {}), ...(ines ? { ines } : {}) },
+    notices: [
+      ...(clientCorrects ? [] : ['client-refuse' as const]),
+      ...(spec.limitation === 'inventory' ? ['limitation-inventaire' as const] : []),
+      ...(spec.limitation === 'representation-letter' ? ['lettre-refusee' as const] : []),
+    ],
   };
 
   return { level, company, truth, books, injections, continuityTraces: continuity ? docClues(continuity.traces) : [] };

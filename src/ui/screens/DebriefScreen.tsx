@@ -1,5 +1,6 @@
 // Débrief : score, étoiles et explication de chaque anomalie. Audit Detective — Gauthier Doumont.
 import { MAXIME_RESULTS } from '../../content/firm';
+import type { Tutorial } from '../../content/tutorials';
 import type { Level } from '../../content/types';
 import { describeClue } from '../../game/clues';
 import { criteriaFeedback, falsePositiveWhy, opinionFeedback, revealingLeads, type CriterionFeedback } from '../../game/feedback';
@@ -7,7 +8,16 @@ import type { ScoreResult } from '../../game/scoring';
 import type { GameState } from '../../game/state';
 import { formatEuro, formatHours } from '../format';
 
-type Props = { level: Level; state: GameState; result: ScoreResult; onReplay: () => void; onHome: () => void; onNext?: () => void };
+type Props = {
+  level: Level;
+  state: GameState;
+  result: ScoreResult;
+  /** Mini-cours des anomalies rencontrées pour la première fois. */
+  notions?: Tutorial[];
+  onReplay: () => void;
+  onHome: () => void;
+  onNext?: () => void;
+};
 
 const mark = (ok: boolean) => (ok ? '✔' : '✘');
 
@@ -34,7 +44,7 @@ function Criteria({ items }: { items: CriterionFeedback[] }) {
   );
 }
 
-export function DebriefScreen({ level, state, result, onReplay, onHome, onNext }: Props) {
+export function DebriefScreen({ level, state, result, notions = [], onReplay, onHome, onNext }: Props) {
   const verdict =
     state.solutionViewed
       ? 'On regarde la solution ensemble.'
@@ -68,6 +78,14 @@ export function DebriefScreen({ level, state, result, onReplay, onHome, onNext }
           {result.anomalies.every((r) => r.account && r.amount) && state.hoursUsed <= level.firm.maximeBet.hours ? MAXIME_RESULTS.won : MAXIME_RESULTS.lost}
         </p>
       )}
+
+      {notions.map((notion) => (
+        <article key={notion.id} className="card static tutorial">
+          <p className="eyebrow">Nouvelle notion · fiche d’Hélène</p>
+          <h2>{notion.title.replace(/^Notion : /, '')}</h2>
+          {notion.lines.map((line) => <p key={line}>{line}</p>)}
+        </article>
+      ))}
 
       {result.anomalies.map((r) => (
         <article key={r.anomaly.id} className="card static">

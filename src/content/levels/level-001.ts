@@ -208,6 +208,7 @@ export const level001: Level = {
   anomalies: [
     {
       id: 'doublon-1187',
+      type: 'duplicate-purchase',
       title: 'Facture d’achat F-2025-1187 comptabilisée deux fois',
       cycle: 'achats',
       accounts: [

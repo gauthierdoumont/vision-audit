@@ -1,6 +1,7 @@
 // Écran de partie : barre d'heures, onglets et briefing. Audit Detective — Gauthier Doumont.
 import { useEffect, useReducer, useState } from 'react';
 import type { Level } from '../../content/types';
+import { briefingTutorials } from '../../game/tutorials';
 import { gameReducer, hoursLeft, type GameAction, type GameState } from '../../game/state';
 import { saveCurrentGame } from '../../storage/db';
 import { formatHours } from '../format';
@@ -24,9 +25,17 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
-type Props = { level: Level; initialState: GameState; onSubmit: (level: Level, state: GameState) => void; onQuit: () => void };
+type Props = {
+  level: Level;
+  initialState: GameState;
+  /** Fiches d'Hélène déjà lues. */
+  seenTutorials: readonly string[];
+  onTutorialsSeen: (ids: string[]) => void;
+  onSubmit: (level: Level, state: GameState) => void;
+  onQuit: () => void;
+};
 
-export function GameScreen({ level, initialState, onSubmit, onQuit }: Props) {
+export function GameScreen({ level, initialState, seenTutorials, onTutorialsSeen, onSubmit, onQuit }: Props) {
   const [state, dispatch] = useReducer((s: GameState, a: GameAction) => gameReducer(level, s, a), initialState);
   const [tab, setTab] = useState<TabId>('dossier');
   const [tools, setTools] = useState(false);
@@ -38,7 +47,16 @@ export function GameScreen({ level, initialState, onSubmit, onQuit }: Props) {
   }, [level, state, onSubmit]);
 
   if (!state.briefingRead) {
-    return <BriefingView level={level} onStart={() => dispatch({ type: 'read-briefing' })} />;
+    return (
+      <BriefingView
+        level={level}
+        tutorials={briefingTutorials(level, seenTutorials)}
+        onStart={(seen) => {
+          if (seen.length > 0) onTutorialsSeen(seen);
+          dispatch({ type: 'read-briefing' });
+        }}
+      />
+    );
   }
 
   const left = hoursLeft(level, state);

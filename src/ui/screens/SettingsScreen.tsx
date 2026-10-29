@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { resetTutorials } from '../../storage/db';
 import { DEFAULT_SETTINGS, FONT_SCALES, loadSettings, saveSettings, type Settings, type Theme } from '../settings';
 
 const THEMES: { value: Theme; label: string }[] = [
@@ -9,6 +10,7 @@ const THEMES: { value: Theme; label: string }[] = [
 
 export function SettingsScreen({ onBack }: { onBack: () => void }) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [tutorialsReset, setTutorialsReset] = useState(false);
   useEffect(() => {
     loadSettings().then(setSettings);
   }, []);
@@ -40,6 +42,13 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
             {f.label}
           </label>
         ))}
+      </fieldset>
+      <fieldset className="card static">
+        <legend>Fiches d’Hélène</legend>
+        <p className="muted">Les fiches expliquent chaque nouveauté la première fois qu’elle apparaît.</p>
+        <button type="button" className="secondary" disabled={tutorialsReset} onClick={() => resetTutorials().then(() => setTutorialsReset(true), () => undefined)}>
+          {tutorialsReset ? 'Les fiches réapparaîtront' : 'Revoir toutes les fiches'}
+        </button>
       </fieldset>
     </section>
   );

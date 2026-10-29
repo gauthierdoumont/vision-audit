@@ -85,3 +85,20 @@ export async function loadMeta<T>(key: string): Promise<T | undefined> {
 export async function saveMeta(key: string, value: unknown): Promise<void> {
   await (await db()).put('meta', value, key);
 }
+
+const TUTORIALS_SEEN = 'tutorials-seen';
+
+/** Fiches d'Hélène déjà lues (identifiants `m:…` pour les mécaniques, `a:…` pour les anomalies). */
+export async function loadSeenTutorials(): Promise<string[]> {
+  return (await loadMeta<string[]>(TUTORIALS_SEEN)) ?? [];
+}
+
+export async function markTutorialsSeen(ids: string[]): Promise<string[]> {
+  const seen = [...new Set([...(await loadSeenTutorials()), ...ids])];
+  await saveMeta(TUTORIALS_SEEN, seen);
+  return seen;
+}
+
+export async function resetTutorials(): Promise<void> {
+  await saveMeta(TUTORIALS_SEEN, []);
+}

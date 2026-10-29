@@ -1,10 +1,12 @@
-// Outils du joueur : calculatrice, glossaire et aide-mémoire PCMN. Audit Detective — Gauthier Doumont.
+// Outils du joueur : calculatrice, glossaire, aide-mémoire PCMN et fiches d'Hélène. Audit Detective — Gauthier Doumont.
 import { useEffect, useRef, useState } from 'react';
 import { ASSERTIONS_GLOSSARY, ISA_GLOSSARY, NOTIONS_GLOSSARY, type GlossaryEntry } from '../content/glossary';
 import { PCMN } from '../content/pcmn';
 import { evaluate, formatResult } from '../game/calculator';
+import { ALL_MECHANIC_TUTORIALS, anomalyNotion } from '../game/tutorials';
+import { loadSeenTutorials } from '../storage/db';
 
-type Tool = 'calculatrice' | 'glossaire' | 'pcmn';
+type Tool = 'calculatrice' | 'glossaire' | 'pcmn' | 'fiches';
 
 export function ToolsPanel({ onClose }: { onClose: () => void }) {
   const [tool, setTool] = useState<Tool>('calculatrice');
@@ -21,7 +23,7 @@ export function ToolsPanel({ onClose }: { onClose: () => void }) {
       <div className="tools-panel" ref={panel}>
         <div className="tools-head">
           <div className="segmented" role="tablist" aria-label="Choix de l’outil">
-            {(['calculatrice', 'glossaire', 'pcmn'] as const).map((t) => (
+            {(['calculatrice', 'glossaire', 'pcmn', 'fiches'] as const).map((t) => (
               <button key={t} type="button" role="tab" aria-selected={tool === t} className={tool === t ? 'active' : ''} onClick={() => setTool(t)}>
                 {t === 'pcmn' ? 'PCMN' : t.charAt(0).toUpperCase() + t.slice(1)}
               </button>
@@ -34,6 +36,7 @@ export function ToolsPanel({ onClose }: { onClose: () => void }) {
         {tool === 'calculatrice' && <Calculator />}
         {tool === 'glossaire' && <Glossary />}
         {tool === 'pcmn' && <PcmnList />}
+        {tool === 'fiches' && <Tutorials />}
       </div>
     </div>
   );
@@ -143,6 +146,29 @@ function PcmnList() {
         </tbody>
       </table>
       <p className="muted">Sous-ensemble du PCMN utilisé dans le jeu. Les subdivisions du 61 sont libres.</p>
+    </div>
+  );
+}
+
+/** Relecture des fiches d'Hélène : toutes les mécaniques, et les notions d'anomalies déjà rencontrées. */
+function Tutorials() {
+  const [seen, setSeen] = useState<string[]>([]);
+  useEffect(() => {
+    loadSeenTutorials().then(setSeen).catch(() => undefined);
+  }, []);
+  const notions = seen.filter((id) => id.startsWith('a:')).flatMap((id) => anomalyNotion(id.slice(2)) ?? []);
+  const render = (t: { id: string; title: string; lines: string[] }) => (
+    <details key={t.id} className="tutorial-entry">
+      <summary>{t.title.replace(/^Notion : /, '')}</summary>
+      {t.lines.map((line) => <p key={line}>{line}</p>)}
+    </details>
+  );
+  return (
+    <div className="tool-scroll">
+      <h3>Comment jouer</h3>
+      {ALL_MECHANIC_TUTORIALS.map(render)}
+      <h3>Notions d’anomalies</h3>
+      {notions.length === 0 ? <p className="muted">Les notions apparaissent ici au fil des dossiers.</p> : notions.map(render)}
     </div>
   );
 }
