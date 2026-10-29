@@ -343,7 +343,7 @@ Avance **un jalon à la fois**. Un jalon n'est terminé que si **tous ses critè
 
 ## 15. Règles de travail pour Claude Code
 
-1. **Début de session** : relis ce fichier et `PROGRESS.md`. Annonce le jalon en cours et propose un **plan court** (5 à 10 lignes) avant de coder.
+1. **Début de session** : relis ce fichier, `PROGRESS.md` et `docs/RESUME-SESSIONS.md` (architecture et historique des sessions). Annonce le jalon en cours et propose un **plan court** (5 à 10 lignes) avant de coder. En fin de session, ajoute la session à `docs/RESUME-SESSIONS.md`.
 2. **Petits pas** : une fonctionnalité à la fois, testée avant de passer à la suivante.
 3. **Avant de dire « terminé »** : lance `npm test`, `npm run build` et, à partir de J2, `npm run validate-levels`. Tout doit passer.
 4. **Exactitude comptable** : si une règle belge (taux, seuil, traitement) est incertaine, n'invente pas. Mets `À VÉRIFIER` dans le code ou le contenu et signale-le à Gauthier.
