@@ -106,10 +106,13 @@ export function generateCase(spec: LevelSpec): GeneratedCase {
     },
     unlockLevel,
   );
-  const docClues = (refs: TraceRef[]) => refs.filter((r): r is { doc: string; line: string } => 'doc' in r).map(docs.clueOf);
+  // Une trace dans un document que ce dossier ne propose pas (procédure pas encore débloquée) est ignorée.
+  const documentIds = new Set(docs.documents.map((d) => d.id));
+  const present = (ref: TraceRef) => 'topic' in ref || documentIds.has(ref.doc);
+  const docClues = (refs: TraceRef[]) => refs.filter((r): r is { doc: string; line: string } => 'doc' in r && present(r)).map(docs.clueOf);
   const cast = buildCharacters(rng.fork('personnages'), company, books.world.employees, injections, (i) => docClues(injections[i]!.contradictedBy ?? []));
   const traces = (injection: Injection, index: number) =>
-    injection.traces.map((ref) => ('topic' in ref ? cast.topicClue(index, !!ref.confession) : docs.clueOf(ref)));
+    injection.traces.filter(present).map((ref) => ('topic' in ref ? cast.topicClue(index, !!ref.confession) : docs.clueOf(ref)));
 
   // ---------- Seuil, opinion, budget ----------
   // Seuil de signification : 0,5 à 1 % du chiffre d'affaires (repère usuel, À VÉRIFIER), loin des montants en jeu.

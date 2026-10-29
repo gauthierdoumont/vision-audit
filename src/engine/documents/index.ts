@@ -6,7 +6,9 @@ import {
 } from './accounting';
 import { isQ4, type DocContext } from './common';
 import { afterClosingDocument, bankConfirmation, bankStatement, clientConfirmation, cutoffDocument, registryDocument, supplierConfirmation } from './external';
-import { contractsDocument, countSheetDocument, inventoryListDocument, lettersDocument, minutesDocument, payrollDocument, personnelDocument } from './internal';
+import {
+  contractsDocument, countSheetDocument, inventoryListDocument, lettersDocument, minutesDocument, payrollDocument, personnelDocument, timesheetDocument,
+} from './internal';
 
 export type { DocContext } from './common';
 
@@ -89,7 +91,7 @@ export const PROCEDURES: ProcedureSpec[] = [
     description: 'Lire les procès-verbaux de l’année et les courriers juridiques reçus.',
     documents: (ctx) => [minutesDocument(ctx), ...(ctx.books.world.letters.length > 0 ? [lettersDocument(ctx)] : [])],
   },
-  { id: 'controle-paie', name: 'Contrôle de la paie', hours: 2, unlockLevel: 21, description: 'Comparer le journal de paie au registre du personnel.', documents: (ctx) => [payrollDocument(ctx), personnelDocument(ctx)] },
+  { id: 'controle-paie', name: 'Contrôle de la paie', hours: 2, unlockLevel: 21, description: 'Comparer le journal de paie au registre du personnel.', documents: (ctx) => [payrollDocument(ctx), personnelDocument(ctx), ...(ctx.truth.world.employees.some((e) => e.overtime) ? [timesheetDocument(ctx)] : [])] },
   { id: 'confirmation-bancaire', name: 'Confirmation bancaire', hours: 3, unlockLevel: 21, description: 'Demander aux banques de confirmer comptes et soldes au 31/12.', documents: (ctx) => [bankConfirmation(ctx)] },
   { id: 'benford', name: 'Analyse de Benford (Inès)', hours: 1, unlockLevel: 25, description: 'Inès passe toutes les factures d’achat au crible de la loi de Benford.', documents: (ctx) => [benfordDocument(ctx)] },
   { id: 'parties-liees', name: 'Recherche à la BCE (parties liées)', hours: 2, unlockLevel: 21, description: 'Consulter le registre des entreprises : qui dirige les fournisseurs et clients ?', documents: (ctx) => [registryDocument(ctx)] },

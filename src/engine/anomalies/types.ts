@@ -36,7 +36,16 @@ export type AnomalyType =
   | 'circular-sales'
   | 'overstated-rebates'
   | 'disguised-loan'
-  | 'fictitious-escrow';
+  | 'fictitious-escrow'
+  // Compléments du catalogue (§9)
+  | 'lapping'
+  | 'unauthorized-credit-note'
+  | 'double-payment'
+  | 'stock-cutoff'
+  | 'scrapped-asset'
+  | 'rigged-reconciliation'
+  | 'inflated-overtime'
+  | 'unrecorded-tax-debt';
 
 /** Personne du client concernée par l'anomalie, interrogée à son sujet. */
 export type Actor = 'manager' | 'accountant' | 'storekeeper' | 'sales';
@@ -75,6 +84,8 @@ export type Injection = {
   contradictedBy?: TraceRef[];
   params: Record<string, string>;
   variant?: string;
+  /** Écart volontaire entre le 550 des livres et le relevé bancaire (rapprochement « arrangé »). */
+  bankGap?: Cents;
 };
 
 export type AnomalyDefinition = {
@@ -158,4 +169,36 @@ export function everywhere(ctx: InjectContext, change: (books: Books) => void): 
 /** Total des ventes (HTVA) de l'exercice, pour dimensionner une anomalie. */
 export function salesTotal(books: Books): Cents {
   return books.entries.flatMap((e) => e.lines).filter((l) => l.account === '700').reduce((s, l) => s + l.credit - l.debit, 0);
+}
+
+/** Écritures d'une facture d'achat et de son paiement éventuel (sans les ajouter aux livres). */
+export function purchaseEntriesOf(ctx: InjectContext, invoice: Invoice, label: string, paidOn: string | null): Entry[] {
+  const { base, vat, total } = totalsOf(invoice);
+  const purchase: Entry = {
+    id: ctx.newId('e'),
+    journal: 'ACH',
+    date: invoice.date,
+    label,
+    lines: [d(invoice.account, invoice.vatDeductible ? base : total), d('411', invoice.vatDeductible ? vat : 0), c('440', total)].filter((l) => l.debit || l.credit),
+    partyId: invoice.partyId,
+    invoiceId: invoice.id,
+  };
+  if (!paidOn) return [purchase];
+  return [purchase, { id: ctx.newId('e'), journal: 'FIN', date: paidOn, label: `Paiement ${invoice.number}`, lines: [d('440', total), c('550', total)], partyId: invoice.partyId, invoiceId: invoice.id }];
+}
+
+/** Une opération réelle (facture et écritures) ajoutée à l'identique dans la vérité et dans les livres. */
+export function addEverywhere(ctx: InjectContext, invoice: Invoice | null, entries: Entry[]): void {
+  everywhere(ctx, (b) => {
+    if (invoice) b.invoices.push(structuredClone(invoice));
+    b.entries.push(...structuredClone(entries));
+    b.entries.sort((x, y) => (x.date === y.date ? 0 : x.date < y.date ? -1 : 1));
+  });
+}
+
+/** La personne du rôle « commercial » ou « magasin », choisie comme le font les entretiens (characters.ts). */
+export function employeeFor(books: Books, role: 'sales' | 'storekeeper') {
+  const pattern = role === 'sales' ? /commercial|vente/i : /magasin|stock|réception/i;
+  const employees = books.world.employees;
+  return employees.find((e) => pattern.test(e.role)) ?? employees[employees.length - 1]!;
 }

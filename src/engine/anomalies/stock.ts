@@ -1,9 +1,9 @@
 // Anomalies sur les stocks. Audit Detective — créé par Gauthier Doumont.
 import { REF } from '../ids';
-import { restateStock, stockValue } from '../ledger';
-import { euros, formatAmount, isoDate, roundTo } from '../money';
+import { restateStock, sortEntries, stockValue } from '../ledger';
+import { euros, formatAmount, formatDate, isoDate, roundTo, vatOf } from '../money';
 import type { StockItem } from '../types';
-import { c, claim, d, everywhere, type AnomalyDefinition } from './types';
+import { c, claim, d, everywhere, partyName, purchaseEntries, q4, salesTotal, type AnomalyDefinition } from './types';
 
 /** Quantités gonflées sur la liste d'inventaire pour améliorer le résultat. */
 export const inflatedStock: AnomalyDefinition = {
@@ -73,4 +73,49 @@ export const obsoleteStock: AnomalyDefinition = {
   },
 };
 
-export const STOCK_ANOMALIES = [inflatedStock, obsoleteStock];
+/** Marchandises reçues le 30/12 et comptées dans le stock, mais facture (de janvier) non prise en charge. */
+export const stockCutoff: AnomalyDefinition = {
+  type: 'stock-cutoff',
+  appliesTo: () => true,
+  inject: (ctx) => {
+    const { books, truth, rng, company } = ctx;
+    const year = company.fiscalYear;
+    const { invoice } = rng.pick(purchaseEntries(books, (e, i) => i.kind === 'invoice' && i.account === '604' && q4(e.date)));
+    const product = invoice.lines[0]!;
+    const supplier = partyName(books, invoice.partyId);
+    const quantity = Math.max(2, Math.round((salesTotal(books) * rng.int(10, 22)) / 1000 / product.unitPrice));
+    const value = quantity * product.unitPrice;
+    const vat = vatOf(value, product.vatRate);
+    const receipt = `BR-${rng.int(1000, 9999)}`;
+    const item: StockItem = {
+      id: ctx.newId('st'),
+      label: `${product.label} — réception du 30/12`,
+      quantity,
+      unitCost: product.unitPrice,
+      lastMovement: isoDate(year, 12, 30),
+      countNote: `Livré le 30/12 par ${supplier} (bon ${receipt}), facture pas encore reçue`,
+    };
+    const payment = { id: ctx.newId('ev'), date: isoDate(year + 1, 1, rng.int(22, 31)), label: `Paiement facture du ${formatDate(isoDate(year + 1, 1, rng.int(3, 8)), true)} (marchandises du bon ${receipt}, livrées le 30/12)`, amount: -(value + vat), partyId: invoice.partyId };
+    everywhere(ctx, (b) => {
+      b.world.stock.push({ ...item });
+      restateStock(b);
+      b.world.afterClosing.push({ ...payment });
+    });
+    // La marchandise est à nous et comptée au 31/12 : son coût et la dette doivent l'être aussi (facture à recevoir, HTVA).
+    truth.entries.push({ id: ctx.newId('e'), journal: 'OD', date: isoDate(year, 12, 31), label: `Facture à recevoir — ${supplier}, bon ${receipt}`, lines: [d('604', value), c('444', value)], partyId: invoice.partyId });
+    sortEntries(truth.entries);
+    return {
+      type: 'stock-cutoff',
+      cycle: 'stocks',
+      assertion: 'separation',
+      qualification: 'erreur',
+      actor: 'storekeeper',
+      accounts: [{ account: '604', amount: value }, { account: '444', amount: value }],
+      correction: [d('604', value), c('444', value)],
+      traces: [REF.count(item.id), REF.inventory(item.id), REF.afterClosing(payment.id), REF.topic()],
+      params: { supplier, item: product.label, quantity: String(quantity), value: formatAmount(value), vat: formatAmount(vat), receipt, year: String(year) },
+    };
+  },
+};
+
+export const STOCK_ANOMALIES = [inflatedStock, obsoleteStock, stockCutoff];

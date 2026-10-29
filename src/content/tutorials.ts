@@ -370,4 +370,76 @@ export const ANOMALY_NOTIONS: Record<AnomalyType, Omit<Tutorial, 'id'>> = {
       'Assertion : existence. C’est une fraude.',
     ],
   },
+  lapping: {
+    title: 'Notion : le lapping (décalage d’encaissements)',
+    lines: [
+      'Quelqu’un garde le paiement d’un client, puis masque le trou avec le paiement suivant d’un autre client, et ainsi de suite.',
+      'Indices : la banque montre un paiement que la balance clients ignore ; un client « en retard » confirme avoir payé.',
+      'Correction : la créance client n’existe plus ; l’argent détourné devient une créance sur l’auteur (débit 416, crédit 400).',
+      'Assertion : existence. C’est une fraude. La circularisation clients est l’arme principale (ISA 505).',
+    ],
+  },
+  'unauthorized-credit-note': {
+    title: 'Notion : la note de crédit non autorisée',
+    lines: [
+      'Une note de crédit diminue une vente. Sans autorisation, elle peut cacher un détournement : le client a payé, quelqu’un a gardé l’argent.',
+      'Indices : note de crédit sans signature alors qu’une règle l’exige (PV), client qui confirme avoir payé en entier.',
+      'Correction : annuler la note de crédit (700, 451) et constater une créance sur l’auteur (416).',
+      'Assertion : existence (la remise n’a jamais eu lieu). C’est une fraude.',
+    ],
+  },
+  'double-payment': {
+    title: 'Notion : la facture payée deux fois',
+    lines: [
+      'Une même facture fournisseur réglée deux fois : le fournisseur nous doit le second paiement.',
+      'Indices : deux virements avec la même référence au relevé bancaire, fournisseur qui confirme un solde en notre faveur, remboursement en janvier.',
+      'Ce trop-payé est une créance. Le passer en charges fait disparaître de l’argent à récupérer.',
+      'Assertion : existence (charge sans achat réel). En général une erreur.',
+    ],
+  },
+  'stock-cutoff': {
+    title: 'Notion : le cut-off sur les stocks',
+    lines: [
+      'Une marchandise comptée dans le stock au 31/12 doit avoir son achat dans le même exercice, même si la facture arrive en janvier.',
+      'Indices : entrée en stock juste avant la clôture, facture et paiement en janvier.',
+      'Correction : débit 604, crédit 444 (factures à recevoir), hors TVA : la TVA se déduit avec la facture.',
+      'Assertion : séparation des exercices. En général une erreur.',
+    ],
+  },
+  'scrapped-asset': {
+    title: 'Notion : l’immobilisation qui n’existe plus',
+    lines: [
+      'Un bien vendu, détruit ou mis au rebut doit sortir du bilan : valeur d’acquisition et amortissements actés.',
+      'Indices : PV, facture d’enlèvement ou de recyclage, bien introuvable alors qu’il figure au tableau des immobilisations.',
+      'On amortit jusqu’à la date de sortie ; la valeur nette restante est une moins-value (66).',
+      'Assertion : existence. En général une erreur de mise à jour du registre.',
+    ],
+  },
+  'rigged-reconciliation': {
+    title: 'Notion : le rapprochement bancaire arrangé',
+    lines: [
+      'Un rapprochement explique l’écart entre le 550 et le relevé bancaire. Un faux poste (« chèque en transit ») peut cacher un trou.',
+      'Indices : poste en suspens qui n’apparaît pas sur les relevés de janvier, confirmation bancaire qui ne colle pas avec le 550.',
+      'Correction : le 550 est trop haut ; l’argent manquant devient une créance sur l’auteur (416).',
+      'Assertion : existence. C’est une fraude.',
+    ],
+  },
+  'inflated-overtime': {
+    title: 'Notion : les heures supplémentaires gonflées',
+    lines: [
+      'Des heures supplémentaires payées mais jamais prestées. Le sursalaire légal est d’au moins 50 % (100 % le dimanche et les jours fériés).',
+      'Indices : heures payées (journal de paie) supérieures aux heures pointées, encodage fait par l’intéressé lui-même.',
+      'Correction : annuler les rémunérations et cotisations en trop ; le net versé en trop devient une créance sur l’employé (416).',
+      'Assertion : existence. C’est une fraude.',
+    ],
+  },
+  'unrecorded-tax-debt': {
+    title: 'Notion : la dette fiscale sous-estimée',
+    lines: [
+      'Une dette fiscale née avant le 31/12 (contrôle, régularisation, amende) se comptabilise dans l’exercice, même payée en janvier.',
+      'Indices : courrier de l’administration, accord signé, paiement au SPF Finances en janvier.',
+      'Correction : la charge (64) et la dette (45) au 31/12.',
+      'Assertion : exhaustivité. Erreur ou fraude selon que la gérance l’a cachée ou non.',
+    ],
+  },
 };

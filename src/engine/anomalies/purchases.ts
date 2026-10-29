@@ -5,7 +5,9 @@ import { orionParty } from '../orion';
 import { between, fictitiousCompanyNumber, MONTHS, sortEntries } from '../ledger';
 import { addDays, formatAmount, formatDate, isoDate, monthOf } from '../money';
 import type { Entry, Invoice, Party } from '../types';
-import { addParty, c, claim, d, deductibleVat, merge, partyName, paymentOf, purchaseEntries, reverse, totalsOf, type AnomalyDefinition, type InjectContext } from './types';
+import {
+  addParty, c, claim, d, deductibleVat, everywhere, merge, octNov, partyName, paymentOf, purchaseEntries, reverse, totalsOf, type AnomalyDefinition, type InjectContext,
+} from './types';
 
 /** Facture d'achat, son écriture et son paiement, ajoutés aux livres. */
 function bookInvoice(ctx: InjectContext, invoice: Invoice, label: string, paidOn: string | null) {
@@ -190,4 +192,50 @@ export const privateExpense: AnomalyDefinition = {
   },
 };
 
-export const PURCHASE_ANOMALIES = [fictitiousSupplier, unrecordedInvoice, privateExpense];
+/** Facture payée deux fois ; au 31/12, le comptable « solde » le compte débiteur du fournisseur en charges. */
+export const doublePayment: AnomalyDefinition = {
+  type: 'double-payment',
+  appliesTo: () => true,
+  inject: (ctx) => {
+    const { books, rng, company } = ctx;
+    const year = company.fiscalYear;
+    const { invoice } = claim(
+      ctx,
+      purchaseEntries(books, (e, i) => {
+        const paid = paymentOf(books, i.id);
+        return i.kind === 'invoice' && i.account === '604' && octNov(e.date) && !!paid && paid.date >= isoDate(year, 10, 1) && paid.date <= isoDate(year, 12, 10);
+      }),
+      (t) => t.entry.id,
+    );
+    ctx.used.add(invoice.id);
+    const first = paymentOf(books, invoice.id)!;
+    const { total } = totalsOf(invoice);
+    const supplier = partyName(books, invoice.partyId);
+    // Le second virement est bien parti : le fournisseur nous doit ce montant et le rembourse en janvier.
+    const second: Entry = { id: ctx.newId('e'), journal: 'FIN', date: addDays(first.date, rng.int(6, 15)), label: `Paiement ${invoice.number}`, lines: [d('440', total), c('550', total)], partyId: invoice.partyId, invoiceId: invoice.id };
+    const refund = { id: ctx.newId('ev'), date: isoDate(year + 1, 1, rng.int(10, 28)), label: `Remboursement reçu — facture ${invoice.number} payée deux fois`, amount: total, partyId: invoice.partyId };
+    everywhere(ctx, (b) => {
+      b.entries.push(structuredClone(second));
+      sortEntries(b.entries);
+      b.world.afterClosing.push({ ...refund });
+    });
+    // Livres : au lieu de réclamer le remboursement, le solde débiteur est passé en charges.
+    const writeOff: Entry = { id: ctx.newId('e'), journal: 'OD', date: isoDate(year, 12, 31), label: `Régularisation du solde ${supplier}`, lines: [d(invoice.account, total), c('440', total)], partyId: invoice.partyId };
+    books.entries.push(writeOff);
+    sortEntries(books.entries);
+    return {
+      type: 'double-payment',
+      cycle: 'achats',
+      assertion: 'existence',
+      qualification: 'erreur',
+      supplierId: invoice.partyId,
+      actor: 'accountant',
+      accounts: [{ account: invoice.account, amount: total }, { account: '440', amount: total }],
+      correction: [d('440', total), c(invoice.account, total)],
+      traces: [REF.bank(first.id), REF.bank(second.id), REF.supplierConfirmation(invoice.partyId), REF.afterClosing(refund.id), REF.topic()],
+      params: { supplier, number: invoice.number, total: formatAmount(total), first: formatDate(first.date), second: formatDate(second.date), refund: formatDate(refund.date, true) },
+    };
+  },
+};
+
+export const PURCHASE_ANOMALIES = [fictitiousSupplier, unrecordedInvoice, privateExpense, doublePayment];
